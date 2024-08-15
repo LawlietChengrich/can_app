@@ -27,12 +27,12 @@ MSGID_WIDTH     = 80
 MSGDIR_WIDTH    = 60
 MSGINFO_WIDTH   = 100
 MSGLEN_WIDTH    = 60
-MSGDATA_WIDTH   = 200
+MSGDATA_WIDTH   = 320
 MSGVIEW_WIDTH   = MSGCNT_WIDTH + MSGID_WIDTH + MSGDIR_WIDTH + MSGINFO_WIDTH + MSGLEN_WIDTH + MSGDATA_WIDTH
 MSGVIEW_HEIGHT  = 500
-SENDVIEW_HEIGHT = 125
+SENDVIEW_HEIGHT = 250
 
-WIDGHT_WIDTH    = GRPBOX_WIDTH + MSGVIEW_WIDTH + 40
+WIDGHT_WIDTH    = GRPBOX_WIDTH + MSGVIEW_WIDTH + 50
 WIDGHT_HEIGHT   = MSGVIEW_HEIGHT + SENDVIEW_HEIGHT + 20
 
 MAX_DISPLAY     = 1000
@@ -152,18 +152,18 @@ class ZCAN_Demo(tk.Tk):
         self.DevInfoWidgetsInit()
 
         self.gbMsgDisplay = tk.LabelFrame(height=MSGVIEW_HEIGHT, width=MSGVIEW_WIDTH + 12, text="报文显示")
-        self.gbMsgDisplay.grid(row=0, column=1, padx=2, pady=2, sticky=tk.NSEW)
+        self.gbMsgDisplay.grid(row=0, column=1, padx=0, pady=6, sticky=tk.NSEW)
         self.gbMsgDisplay.grid_propagate(0)
         self.MsgDisplayWidgetsInit()
 
         self.gbMsgSend = tk.LabelFrame(heigh=SENDVIEW_HEIGHT, width=MSGVIEW_WIDTH + 12, text="报文发送")
-        self.gbMsgSend.grid(row=2, column=1, padx=2, pady=2, sticky=tk.NSEW)
+        self.gbMsgSend.grid(row=2, column=1, padx=0, pady=0, sticky=tk.NSEW)
         self.gbMsgSend.grid_propagate(0)
         self.MsgSendWidgetsInit()
 
     def DeviceInfoInit(self):
         self.cmbDevType["value"] = tuple([dev_name for dev_name in self._dev_info])
-        self.cmbDevType.current(0)
+        self.cmbDevType.current(6)
 
     def DevConnectWidgetsInit(self):
         #Device Type
@@ -307,7 +307,7 @@ class ZCAN_Demo(tk.Tk):
         self.cmbMsgType = ttk.Combobox(self.gbMsgSend, width=6, state="readonly")
         self.cmbMsgType.grid(row = 0, column=3, sticky=tk.W) 
         self.cmbMsgType["value"] = ("标准帧", "扩展帧")
-        self.cmbMsgType.current(0)
+        self.cmbMsgType.current(1)
 
         #CAN Format 
         tk.Label(self.gbMsgSend, anchor=tk.W, text="帧格式:").grid(row=0, column=4, sticky=tk.W)
@@ -328,8 +328,9 @@ class ZCAN_Demo(tk.Tk):
         #CAN ID
         tk.Label(self.gbMsgSend, anchor=tk.W, text="帧ID(hex):").grid(row=1, column=0, sticky=tk.W)
         self.entryMsgID = tk.Entry(self.gbMsgSend, width=10, text="100")
-        self.entryMsgID.grid(row=1, column=1, sticky=tk.W) 
-        self.entryMsgID.insert(0, "100")
+        self.entryMsgID.grid(row=1, column=1, sticky=tk.W)
+        self.entryMsgID.tmp_value = 0 
+        #self.entryMsgID.insert(0, "100")
 
         #CAN Length 
         tk.Label(self.gbMsgSend, anchor=tk.W, text="长度:").grid(row=1, column=2, sticky=tk.W)
@@ -342,7 +343,7 @@ class ZCAN_Demo(tk.Tk):
         tk.Label(self.gbMsgSend, anchor=tk.W, text="数据(hex):").grid(row=1, column=4, sticky=tk.W)
         self.entryMsgData = tk.Entry(self.gbMsgSend, width=30)
         self.entryMsgData.grid(row = 1, column=5, columnspan=4, sticky=tk.W) 
-        self.entryMsgData.insert(0, "00 01 02 03 04 05 06 07")
+        self.entryMsgData.insert(0, "FF 00 00 00 00 00 00 00")
 
         #send frame number
         tk.Label(self.gbMsgSend, anchor=tk.W, text="发送帧数:").grid(row=2, column=0, sticky=tk.W)
@@ -360,7 +361,7 @@ class ZCAN_Demo(tk.Tk):
         tk.Label(self.gbMsgSend, anchor=tk.W, text="发送间隔(ms):").grid(row=2, column=4, sticky=tk.W)
         self.entryMsgPeriod = tk.Entry(self.gbMsgSend, width=8)
         self.entryMsgPeriod.grid(row=2, column=5, sticky=tk.W) 
-        self.entryMsgPeriod.insert(0, "0")
+        self.entryMsgPeriod.insert(0, "1")
 
         #msg id add
         self.varIDInc = tk.IntVar()
@@ -371,8 +372,99 @@ class ZCAN_Demo(tk.Tk):
         self.strvSend = tk.StringVar()
         self.strvSend.set("发送")
         self.btnMsgSend = ttk.Button(self.gbMsgSend, textvariable=self.strvSend, command=self.BtnSendMsg_Click) 
-        self.btnMsgSend.grid(row=3, column=7, padx=2, pady=2)
+        self.btnMsgSend.grid(row=7, column=6, padx=6, pady=2)
         self.btnMsgSend["state"] = tk.DISABLED
+
+        tk.Label(self.gbMsgSend, anchor=tk.W, text="自定义部分:").grid(row=3, column=0, sticky=tk.W)
+
+        #ID28-26 P 优先级
+        tk.Label(self.gbMsgSend, anchor=tk.W, text="优先级(P):").grid(row=4, column=0, sticky=tk.W)
+        self.cmbProvity = ttk.Combobox(self.gbMsgSend, width=6, state="readonly")
+        self.cmbProvity.grid(row = 4, column=1, sticky=tk.W)
+        self.cmbProvity.bind('<<ComboboxSelected>>', self.CanIdChangeEvent)
+        self.cmbProvity["value"] = ("主节点", "从节点")
+        self.cmbProvity.current(0)
+        self.entryMsgID.tmp_value += 0b11<<26
+
+        #ID25 LT 优先级
+        tk.Label(self.gbMsgSend, anchor=tk.W, text="总线标志(LT):").grid(row=4, column=2, sticky=tk.W)
+        self.cmbBusFlag = ttk.Combobox(self.gbMsgSend, width=6, state="readonly")
+        self.cmbBusFlag.grid(row = 4, column=3, sticky=tk.W)
+        self.cmbBusFlag.bind('<<ComboboxSelected>>', self.CanIdChangeEvent)
+        self.cmbBusFlag["value"] = ("A总线", "B总线")
+        self.cmbBusFlag.current(0)
+        self.entryMsgID.tmp_value += 0<<25
+
+        #ID24 - 20 DT 数据类型
+        tk.Label(self.gbMsgSend, anchor=tk.W, text="数据类型(DT):").grid(row=5, column=0, sticky=tk.W)
+        self.cmbDataType = ttk.Combobox(self.gbMsgSend, width=8, state="readonly")
+        self.cmbDataType.grid(row = 5, column=1, sticky=tk.W)
+        self.cmbDataType.bind('<<ComboboxSelected>>', self.DataTypeChangeEvent)
+        #self.cmbDataType.bind('<<ComboboxSelected>>', self.CanIdChangeEvent)
+        #self.cmbDataType.bind('<<ComboboxSelected>>', self.TmtTypeChangeEvent)
+        self.cmbDataType["value"] = ("遥测", "复位", "短控", "备份数据请求", "备份数据广播")
+        self.cmbDataType.current(0)
+        self.entryMsgID.tmp_value += 0<<20
+
+        #指令码TMT
+        #self.entryMsgData = tk.Entry(self.gbMsgSend, width=30)
+        #self.entryMsgData.grid(row = 1, column=5, columnspan=4, sticky=tk.W) 
+
+        tk.Label(self.gbMsgSend, anchor=tk.W, text="指令码(TMT):").grid(row=5, column=2, sticky=tk.W)
+        self.cmbTmt = ttk.Combobox(self.gbMsgSend, width=8, state="readonly")
+        self.cmbTmt.grid(row = 5, column=3, sticky=tk.W)
+        #self.cmbTmt.bind('<<ComboboxSelected>>', self.CanIdChangeEvent)
+        self.cmbTmt.bind('<<ComboboxSelected>>', self.TmtTypeChangeEvent)
+        self.cmbTmt["value"] = ("MPPT", "BAT", "WING")
+        self.cmbTmt.current(0)
+        #self.entryMsgID.tmp_value += 0<<20
+
+        #指令码参数
+        tk.Label(self.gbMsgSend, anchor=tk.W, text="指令码参数:").grid(row=5, column=4, sticky=tk.W)
+        self.cmbTmtPar = ttk.Combobox(self.gbMsgSend, width=14, state="readonly")
+        self.cmbTmtPar.grid(row = 5, column=5, columnspan=2, sticky=tk.W)
+        #self.cmbTmt.bind('<<ComboboxSelected>>', self.CanIdChangeEvent)
+        self.cmbTmtPar.bind('<<ComboboxSelected>>', self.TmtParChangeEvent)
+        #self.cmbTmt["value"] = ("MPPT", "BAT", "WING")
+        #self.cmbTmt.current(0)
+        #self.entryMsgID.tmp_value += 0<<20
+
+        #ID19 - 15 DA 目的地址
+        tk.Label(self.gbMsgSend, anchor=tk.W, text="目的地址(DA):").grid(row=6, column=0, sticky=tk.W)
+        self.cmbDa = ttk.Combobox(self.gbMsgSend, width=6, state="readonly")
+        self.cmbDa.grid(row = 6, column=1, sticky=tk.W)
+        self.cmbDa.bind('<<ComboboxSelected>>', self.CanIdChangeEvent)
+        self.cmbDa["value"] = ("星算", "电控主", "电控备", "广播")
+        self.cmbDa.current(0)
+        self.entryMsgID.tmp_value += 0<<15
+
+        #ID14 - 10 SA 源地址
+        tk.Label(self.gbMsgSend, anchor=tk.W, text="源地址(SA):").grid(row=6, column=2, sticky=tk.W)
+        self.cmbSa = ttk.Combobox(self.gbMsgSend, width=6, state="readonly")
+        self.cmbSa.grid(row = 6, column=3, sticky=tk.W)
+
+        self.cmbSa.bind('<<ComboboxSelected>>', self.CanIdChangeEvent)
+        self.cmbSa["value"] = ("星算", "电控主", "电控备")
+        self.cmbSa.current(1)
+
+        #ID9 - 8 FT 源地址
+        tk.Label(self.gbMsgSend, anchor=tk.W, text="单复帧(FT):").grid(row=6, column=4, sticky=tk.W)
+        self.cmbFt = ttk.Combobox(self.gbMsgSend, width=6, state="readonly")
+        self.cmbFt.grid(row = 6, column=5, sticky=tk.W)
+
+        self.cmbFt.bind('<<ComboboxSelected>>', self.CanIdChangeEvent)
+        self.cmbFt["value"] = ("单帧", "复首", "复中", "复尾")
+        self.cmbFt.current(0)
+
+        tk.Label(self.gbMsgSend, anchor=tk.W, text="帧计数(FC):").grid(row=6, column=6, sticky=tk.W)
+        self.entryFc = tk.Entry(self.gbMsgSend, width=8)
+        self.entryFc.grid(row=6, column=7, sticky=tk.W) 
+        self.entryFc.bind('<KeyRelease>', self.CanIdChangeEvent)
+        self.entryFc.insert(0, 1)
+
+        self.entryMsgID.tmp_value = "{:X}".format(self.entryMsgID.tmp_value)
+
+        self.entryMsgID.insert(0, self.entryMsgID.tmp_value)
 
 ###############################################################################
 ### Function 
@@ -399,7 +491,7 @@ class ZCAN_Demo(tk.Tk):
         view = []
         view.append(str(self._view_cnt))
         self._view_cnt += 1 
-        view.append(hex(msg.can_id)[2:])
+        view.append(hex(msg.can_id)[2:].upper())
         view.append("发送" if is_transmit else "接收")
 
         str_info = ''
@@ -411,7 +503,7 @@ class ZCAN_Demo(tk.Tk):
         if msg.rtr:
             view.append('')
         else:
-            view.append(''.join(hex(msg.data[i])[2:] + ' ' for i in range(msg.can_dlc)))
+            view.append(''.join(format(msg.data[i],'02X') + ' ' for i in range(msg.can_dlc)))
         return view
 
     def CANFDMsg2View(self, msg, is_transmit=True):
@@ -456,7 +548,7 @@ class ZCAN_Demo(tk.Tk):
 
             # 波特率
             self.cmbBaudrate["value"] = tuple([brt for brt in cur_chn_info["baudrate"].keys()])
-            self.cmbBaudrate.current(len(self.cmbBaudrate["value"]) - 1)
+            self.cmbBaudrate.current(len(self.cmbBaudrate["value"]) - 3)
 
             if cur_chn_info["is_canfd"] == True:
                 # 数据域波特率 
@@ -792,6 +884,213 @@ class ZCAN_Demo(tk.Tk):
         self.cmbMsgLen["value"] = tuple([self.__dlc2len(i) for i in range(16 if self.cmbMsgCANFD.current() else 9)]) 
         if tmp >= len(self.cmbMsgLen["value"]):
             self.cmbMsgLen.current(len(self.cmbMsgLen["value"]) - 1)            
+
+    def TmtParChangeEvent(self, *args):
+        #self.entryMsgData.delete(0, "end")
+        if self.cmbDataType.current() == 2:
+            self.entryMsgData.delete(0, "end")
+            if self.cmbTmt.current() == 0:
+                self.entryMsgData.insert(0, "01 00 00 00 00 00 00")
+                #self.entryMsgData.insert(2, " " + "{:02X}".format(self.cmbTmtPar.current()))
+            elif self.cmbTmt.current() == 1:
+                self.entryMsgData.insert(0, "02 00 00 00 00 00 00")
+            elif self.cmbTmt.current() == 2:
+                self.entryMsgData.insert(0, "04 00 00 00 00 00 00")
+            elif self.cmbTmt.current() == 3:
+                self.entryMsgData.insert(0, "07 00 00 00 00 00 00")
+
+            self.entryMsgData.insert(2, " " + "{:02X}".format(self.cmbTmtPar.current()))
+
+    def TmtTypeChangeEvent(self, *args):
+        self.entryMsgData.delete(0, "end")
+        #self.cmbTmtPar.set("")
+        if self.cmbDataType.current() == 0:
+            if self.cmbTmt.current() == 0:
+                self.entryMsgData.insert(0, "FF 00 00 00 00 00 00 00")
+            elif self.cmbTmt.current() == 1:
+                self.entryMsgData.insert(0, "FE 00 00 00 00 00 00 00")
+            elif self.cmbTmt.current() == 2:
+                self.entryMsgData.insert(0, "FD 00 00 00 00 00 00 00")
+        elif self.cmbDataType.current() == 1:
+            if self.cmbTmt.current() == 0:
+                self.entryMsgData.insert(0, "F9 00 00 00 00 00 00 00")
+            elif self.cmbTmt.current() == 1:
+                self.entryMsgData.insert(0, "F8 00 00 00 00 00 00 00")
+            elif self.cmbTmt.current() == 2:
+                self.entryMsgData.insert(0, "F7 00 00 00 00 00 00 00")
+        elif self.cmbDataType.current() == 2:
+            if self.cmbTmt.current() == 0:
+                self.entryMsgData.insert(0, "01 00 00 00 00 00 00 00")
+                self.cmbTmtPar["value"] = (
+                            "MPPT1控制关", 
+                            "MPPT1控制开", 
+                            "MPPT2控制关", 
+                            "MPPT2控制开", 
+                            "MPPT3控制关", 
+                            "MPPT3控制开", 
+                            "MPPT4控制关", 
+                            "MPPT4控制开", 
+                            "MPPT5控制关", 
+                            "MPPT5控制开", 
+                            "MPPT6控制关", 
+                            "MPPT6控制开", 
+                            "MPPT7控制关", 
+                            "MPPT7控制开", 
+                            "MPPT8控制关", 
+                            "MPPT8控制开", 
+                            "MPPT9控制关", 
+                            "MPPT9控制开", 
+                            )
+            elif self.cmbTmt.current() == 1:
+                self.entryMsgData.insert(0, "02 00 00 00 00 00 00 00")
+                self.cmbTmtPar["value"] = (
+                            "欠压保护禁止", 
+                            "欠压保护使能", 
+                            "自主加电禁止",
+                            "自主加电使能",
+                            "放电开关断开",
+                            "放电开关接通",
+                            "充电电流1档",
+                            "充电电流2档",
+                            "充电电压1档",
+                            "充电电压2档",
+                            "充电电压3档",
+                            )
+            elif self.cmbTmt.current() == 2:
+                self.entryMsgData.insert(0, "04 00 00 00 00 00 00 00")
+                self.cmbTmtPar["value"] = (
+                            "QV前端A断开", 
+                            "QV前端A接通", 
+                            "QV前端B断开",
+                            "QV前端B接通",
+                            "霍尔组件断开",
+                            "霍尔组件接通",
+                            "发射相控阵A断开",
+                            "发射相控阵A接通",
+                            "发射相控阵B断开",
+                            "发射相控阵B接通",
+                            "接收相控阵断开",
+                            "接收相控阵接通",
+                            "飞轮X断开",
+                            "飞轮X接通",
+                            "飞轮Y断开",
+                            "飞轮Y接通",
+                            "飞轮Z断开",
+                            "飞轮Z接通",
+                            "飞轮S断开",
+                            "飞轮S接通",
+                            )
+            elif self.cmbTmt.current() == 3:
+                self.entryMsgData.insert(0, "07 00 00 00 00 00 00 00")
+                self.cmbTmtPar["value"] = (
+                            "帆板天线解锁配电断开", 
+                            "帆板天线解锁配电接通", 
+                            "解锁帆板",
+                            "解锁举升机构",
+                            "解锁天线A",
+                            "解锁天线B",
+                            )
+            self.cmbTmtPar.current(0)
+        elif self.cmbDataType.current() == 3:
+            self.entryMsgData.insert(0, "F5 00 00 00 00 00 00 00")
+
+    def DataTypeChangeEvent(self, *args):
+        print(456)
+        if isinstance(self.entryMsgID.tmp_value, str):
+            self.entryMsgID.tmp_value = int(self.entryMsgID.tmp_value, 16)
+
+        self.entryMsgID.tmp_value &= ~(0b11111<<20)
+        self.entryMsgData.delete(0, "end")
+        self.cmbTmtPar["value"] = {}
+        self.cmbTmtPar.set("")
+
+        if self.cmbDataType.current() == 0:
+            self.cmbTmt["value"] = ("MPPT", "BAT", "WING")
+            self.entryMsgData.insert(0, "FF 00 00 00 00 00 00 00")
+        elif self.cmbDataType.current() == 1:
+            self.entryMsgID.tmp_value |= 0b1<<20
+            self.cmbTmt["value"] = ("复位CANAB", "复位CANA", "复位CANB")
+            self.entryMsgData.insert(0, "F9 00 00 00 00 00 00 00")
+        elif self.cmbDataType.current() == 2:
+            self.entryMsgID.tmp_value |= 0b10<<20
+            self.cmbTmt["value"] = ("MPPT", "BAT", "WING1","WING2")
+            self.cmbTmtPar["value"] = (
+                                        "MPPT1控制关", 
+                                        "MPPT1控制开", 
+                                        "MPPT2控制关", 
+                                        "MPPT2控制开", 
+                                        "MPPT3控制关", 
+                                        "MPPT3控制开", 
+                                        "MPPT4控制关", 
+                                        "MPPT4控制开", 
+                                        "MPPT5控制关", 
+                                        "MPPT5控制开", 
+                                        "MPPT6控制关", 
+                                        "MPPT6控制开", 
+                                        "MPPT7控制关", 
+                                        "MPPT7控制开", 
+                                        "MPPT8控制关", 
+                                        "MPPT8控制开", 
+                                        "MPPT9控制关", 
+                                        "MPPT9控制开", 
+                                       )
+            self.cmbTmtPar.current(0)
+            self.entryMsgData.insert(0, "01 00 00 00 00 00 00 00")
+        elif self.cmbDataType.current() == 3:
+            self.entryMsgID.tmp_value |= 0b11<<20
+            self.cmbTmt["value"] = ("获取96字节")
+            self.entryMsgData.insert(0, "F5 00 00 00 00 00 00 00")
+        elif self.cmbDataType.current() == 4:
+            self.entryMsgID.tmp_value |= 0b10100<<20
+            self.cmbTmt["value"] = ("广播96字节")
+
+        self.cmbTmt.current(0)
+        self.entryMsgID.tmp_value = "{:X}".format(self.entryMsgID.tmp_value)
+        self.entryMsgID.delete(0, "end")
+        self.entryMsgID.insert(0, self.entryMsgID.tmp_value )
+
+    def CanIdChangeEvent(self, *args):
+        print(123)
+        if isinstance(self.entryMsgID.tmp_value, str):
+            self.entryMsgID.tmp_value = int(self.entryMsgID.tmp_value, 16)
+        self.entryMsgID.tmp_value &= (0b11111<<20)
+
+        if self.cmbProvity.current() == 0:
+            self.entryMsgID.tmp_value |= 0b11<<26
+        elif self.cmbProvity.current() == 1:
+            self.entryMsgID.tmp_value |= 0b110<<26
+
+        if self.cmbBusFlag.current() == 1:
+            self.entryMsgID.tmp_value |= 0b1<<25
+        '''
+        if self.cmbDataType.current() == 1:
+            self.entryMsgID.tmp_value += 0b1<<20
+        elif self.cmbDataType.current() == 2:
+            self.entryMsgID.tmp_value += 0b10<<20
+        elif self.cmbDataType.current() == 3:
+            self.entryMsgID.tmp_value += 0b11<<20
+        elif self.cmbDataType.current() == 4:
+            self.entryMsgID.tmp_value += 0b10100<<20
+        '''
+        if self.cmbDa.current() == 1:
+            self.entryMsgID.tmp_value |= 0b10000<<15
+        elif self.cmbDa.current() == 2:
+            self.entryMsgID.tmp_value |= 0b10001<<15
+        elif self.cmbDa.current() == 3:
+            self.entryMsgID.tmp_value |= 0b11111<<15
+
+        if self.cmbSa.current() == 1:
+            self.entryMsgID.tmp_value |= 0b10000<<10
+        elif self.cmbSa.current() == 2:
+            self.entryMsgID.tmp_value |= 0b10001<<10
+
+        self.entryMsgID.tmp_value |= self.cmbFt.current()<<8
+
+        self.entryMsgID.tmp_value |= (int)(self.entryFc.get())%0x100
+
+        self.entryMsgID.tmp_value = "{:X}".format(self.entryMsgID.tmp_value)
+        self.entryMsgID.delete(0, "end")
+        self.entryMsgID.insert(0, self.entryMsgID.tmp_value )
 
     def BtnSendMsg_Click(self): 
         if not self._is_sending:
