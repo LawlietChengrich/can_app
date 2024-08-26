@@ -20,6 +20,9 @@ from tkinter import messagebox
 import threading
 import time
 import json
+import os
+import xml.etree.cElementTree as ET
+from tkinter import filedialog
 
 GRPBOX_WIDTH    = 200
 MSGCNT_WIDTH    = 50
@@ -31,7 +34,7 @@ MSGDATA_WIDTH   = 320
 MSGVIEW_WIDTH   = MSGCNT_WIDTH + MSGID_WIDTH + MSGDIR_WIDTH + MSGINFO_WIDTH + MSGLEN_WIDTH + MSGDATA_WIDTH
 MSGVIEW_HEIGHT  = 500
 SENDVIEW_HEIGHT = 250
-REMOTE_WIN_WIDTH = 300
+REMOTE_WIN_WIDTH = 330
 REMOTE_WIN_HEIGHT = 700
 
 WIDGHT_WIDTH    = GRPBOX_WIDTH + MSGVIEW_WIDTH + 50
@@ -47,10 +50,12 @@ RM_MPPT_FRAME_CNT = 6
 RM_BAT_FRAME_CNT = 3
 RM_WING_FRAME_CNT = 2
 DT_REMOTE_RETURN = 0b110
+DT_BACKUP_RETURN = 0b101
 CANID_PRO_POS = 26
 CANID_BUS_POS = 25
 CANID_DT_POS = 20
 CANID_DA_POS = 15
+BC_96_FRAME_NUM = 13
 
 USBCANFD_TYPE    = (41, 42, 43)
 USBCAN_XE_U_TYPE = (20, 21, 31)
@@ -315,44 +320,44 @@ class ZCAN_Demo(tk.Tk):
         tk.Label(self.gbMsgDisplay, width=10, text="发送帧数:").pack(side=tk.RIGHT)
 
     def CloseRemoteWin(self):
-        if self.WinRemote != None:
-            self.WinRemote.destroy()
-            self.WinRemote = None
+        if self.WinSub != None:
+            self.WinSub.destroy()
+            self.WinSub = None
 
     def RemoteDataWindowCreate(self, tmt):
-        if self.WinRemote == None:
-            self.WinRemote = tk.Toplevel(self)
-            self.WinRemote.protocol("WM_DELETE_WINDOW", self.CloseRemoteWin)
+        if self.WinSub == None:
+            self.WinSub = tk.Toplevel(self)
+            self.WinSub.protocol("WM_DELETE_WINDOW", self.CloseRemoteWin)
             winw = REMOTE_WIN_WIDTH
             winh = REMOTE_WIN_HEIGHT
             scrw = self.winfo_screenwidth()
             scrh = self.winfo_screenheight()
             x = (scrw - WIDGHT_WIDTH)/2 + WIDGHT_WIDTH
             y = (scrh - WIDGHT_HEIGHT)/2
-            self.WinRemote.geometry('%dx%d+%d+%d' % (winw, winh, x, y))
-            self.WinRemote.minsize(200,200)
+            self.WinSub.geometry('%dx%d+%d+%d' % (winw, winh, x, y))
+            self.WinSub.minsize(200,200)
 
-        for widget in self.WinRemote.winfo_children():
+        for widget in self.WinSub.winfo_children():
             widget.destroy()
 
-        tk.Label(self.WinRemote, width=12, anchor=tk.W, text=("遥测请求计数:")).grid(row=0, column=0, sticky=tk.W)
-        tk.Label(self.WinRemote, width=12, anchor=tk.W, text=("正确指令计数:")).grid(row=1, column=0, sticky=tk.W)
-        tk.Label(self.WinRemote, width=12, anchor=tk.W, text=("错误指令计数:")).grid(row=2, column=0, sticky=tk.W)
-        tk.Label(self.WinRemote, width=12, anchor=tk.W, text=("最近执行指令:")).grid(row=3, column=0, sticky=tk.W)
-        tk.Label(self.WinRemote, width=12, anchor=tk.W, text=("备份接收计数:")).grid(row=4, column=0, sticky=tk.W)
+        tk.Label(self.WinSub, width=12, anchor=tk.W, text=("遥测请求计数:")).grid(row=0, column=0, sticky=tk.W)
+        tk.Label(self.WinSub, width=12, anchor=tk.W, text=("正确指令计数:")).grid(row=1, column=0, sticky=tk.W)
+        tk.Label(self.WinSub, width=12, anchor=tk.W, text=("错误指令计数:")).grid(row=2, column=0, sticky=tk.W)
+        tk.Label(self.WinSub, width=12, anchor=tk.W, text=("最近执行指令:")).grid(row=3, column=0, sticky=tk.W)
+        tk.Label(self.WinSub, width=12, anchor=tk.W, text=("备份接收计数:")).grid(row=4, column=0, sticky=tk.W)
         tmt_value = []
 
         if tmt == 0:
-            self.WinRemote.title("遥测MPPT数据")
+            self.WinSub.title("遥测MPPT数据")
             for i in range(0, 9):
-                tk.Label(self.WinRemote, width=12, anchor=tk.W, text=("MPPT%d 电压(V):" % (i+1))).grid(row=i+RM_DATA_HEAD_LEN, column=0, sticky=tk.W)
-                tk.Label(self.WinRemote, width=6, anchor=tk.W, text=("未知")).grid(row=i+RM_DATA_HEAD_LEN, column=1, sticky=tk.W)
-                tk.Label(self.WinRemote, width=6, anchor=tk.W, text=("电流(A):")).grid(row=i+RM_DATA_HEAD_LEN, column=2, sticky=tk.W)
-                tk.Label(self.WinRemote, width=6, anchor=tk.W, text=("未知")).grid(row=i+RM_DATA_HEAD_LEN, column=3, sticky=tk.W)
-                tk.Label(self.WinRemote, width=4, anchor=tk.W, text=("状态:")).grid(row=i+RM_DATA_HEAD_LEN, column=4, sticky=tk.W)
-                tk.Label(self.WinRemote, width=3, anchor=tk.W, text=("未知")).grid(row=i+RM_DATA_HEAD_LEN, column=5, sticky=tk.W)
+                tk.Label(self.WinSub, width=12, anchor=tk.W, text=("MPPT%d 电压(V):" % (i+1))).grid(row=i+RM_DATA_HEAD_LEN, column=0, sticky=tk.W)
+                tk.Label(self.WinSub, width=6, anchor=tk.W, text=("未知")).grid(row=i+RM_DATA_HEAD_LEN, column=1, sticky=tk.W)
+                tk.Label(self.WinSub, width=6, anchor=tk.W, text=("电流(A):")).grid(row=i+RM_DATA_HEAD_LEN, column=2, sticky=tk.W)
+                tk.Label(self.WinSub, width=6, anchor=tk.W, text=("未知")).grid(row=i+RM_DATA_HEAD_LEN, column=3, sticky=tk.W)
+                tk.Label(self.WinSub, width=4, anchor=tk.W, text=("状态:")).grid(row=i+RM_DATA_HEAD_LEN, column=4, sticky=tk.W)
+                tk.Label(self.WinSub, width=3, anchor=tk.W, text=("未知")).grid(row=i+RM_DATA_HEAD_LEN, column=5, sticky=tk.W)
         elif tmt == 1:
-            self.WinRemote.title("遥测BAT数据")
+            self.WinSub.title("遥测BAT数据")
             tmt_value = [
                 "母线电压(V):", 
                 "蓄电池电压(V):", 
@@ -363,10 +368,10 @@ class ZCAN_Demo(tk.Tk):
                 "放电状态:"]
 
             for i in range(0, len(tmt_value)):
-                tk.Label(self.WinRemote, width=12, anchor=tk.W, text=(tmt_value[i])).grid(row=i+RM_DATA_HEAD_LEN, column=0, sticky=tk.W)
-                tk.Label(self.WinRemote, width=12, anchor=tk.W, text=("未知")).grid(row=i+RM_DATA_HEAD_LEN, column=1, sticky=tk.W)
+                tk.Label(self.WinSub, width=12, anchor=tk.W, text=(tmt_value[i])).grid(row=i+RM_DATA_HEAD_LEN, column=0, sticky=tk.W)
+                tk.Label(self.WinSub, width=12, anchor=tk.W, text=("未知")).grid(row=i+RM_DATA_HEAD_LEN, column=1, sticky=tk.W)
         elif tmt == 2:
-            self.WinRemote.title("遥测WING数据")
+            self.WinSub.title("遥测WING数据")
             tmt_value = [
                 "QVA:", 
                 "QVB:", 
@@ -382,8 +387,173 @@ class ZCAN_Demo(tk.Tk):
                 ]
 
             for i in range(0, len(tmt_value)):
-                tk.Label(self.WinRemote, width=12, anchor=tk.W, text=(tmt_value[i])).grid(row=i+RM_DATA_HEAD_LEN, column=0, sticky=tk.W)
-                tk.Label(self.WinRemote, width=12, anchor=tk.W, text=("未知")).grid(row=i+RM_DATA_HEAD_LEN, column=1, sticky=tk.W)
+                tk.Label(self.WinSub, width=12, anchor=tk.W, text=(tmt_value[i])).grid(row=i+RM_DATA_HEAD_LEN, column=0, sticky=tk.W)
+                tk.Label(self.WinSub, width=12, anchor=tk.W, text=("未知")).grid(row=i+RM_DATA_HEAD_LEN, column=1, sticky=tk.W)
+
+    def Recv96BkDataWindowCreate(self):
+        if self.WinSub == None:
+            self.WinSub = tk.Toplevel(self)
+            self.WinSub.protocol("WM_DELETE_WINDOW", self.CloseRemoteWin)
+            winw = REMOTE_WIN_WIDTH
+            winh = REMOTE_WIN_HEIGHT
+            scrw = self.winfo_screenwidth()
+            scrh = self.winfo_screenheight()
+            x = (scrw - WIDGHT_WIDTH)/2 + WIDGHT_WIDTH
+            y = (scrh - WIDGHT_HEIGHT)/2
+            self.WinSub.geometry('%dx%d+%d+%d' % (winw, winh, x, y))
+            self.WinSub.minsize(200,200)
+
+        for widget in self.WinSub.winfo_children():
+            widget.destroy()
+
+        self.WinSub.title("接收96字节备份数据")
+
+    def data96_select_file(self):
+        filetypes = (
+            ('list files', '*.list'),
+            ('All files', '*.*')
+        )
+    
+        filename = filedialog.askopenfilename(
+            title='Open a file',
+            initialdir='./',
+            filetypes=filetypes)
+        
+        if filename:
+            print(filename)
+        else:
+            return
+
+        obj_value = [0]*16
+        can_id_disply = ['']*16
+        can_data_disply = ['']*16
+        i = 0
+        try:
+            mytree = ET.parse(filename)
+            myroot = mytree.getroot()
+            for x in myroot:
+                obj_value[i] = x.get('obj')
+                for j in range(0, 4):
+                    can_id_disply[i] = can_id_disply[i] + obj_value[i][(3-j)*2] + obj_value[i][(3-j)*2+1]
+
+                if i == 0:
+                    for j in range(0, 6):
+                        can_data_disply[i] = can_data_disply[i]+obj_value[i][30+j*2] + obj_value[i][31+j*2] + ' '
+                elif i == 12:
+                    for j in range(0, 2):
+                        can_data_disply[i] = can_data_disply[i]+obj_value[i][26+j*2] + obj_value[i][27+j*2] + ' '
+                else:
+                    for j in range(0, 8):
+                        can_data_disply[i] = can_data_disply[i]+obj_value[i][26+j*2] + obj_value[i][27+j*2] + ' '
+                        
+                #删除最后空格
+                can_data_disply[i] = can_data_disply[i][:-1]
+                i=i+1
+        except:
+            messagebox.showerror(title="导入文件", message="文件错误，导入失败")
+
+        for j in range(0, i):
+            tk.Label(self.WinSub, width=4, anchor=tk.W, text=("%d"%(j+1))).grid(row=j+1, column=0, sticky=tk.W)
+            self.entryBcMsgCanid[j].delete(0, "end")
+            self.entryBcMsgCanid[j].insert(0, can_id_disply[j])
+            self.entryBcMsgData[j].delete(0, "end")
+            self.entryBcMsgData[j].insert(0, can_data_disply[j])
+
+
+    def BdCt96DataWindowCreate(self):
+        if self.WinSub == None:
+            self.WinSub = tk.Toplevel(self)
+            self.WinSub.protocol("WM_DELETE_WINDOW", self.CloseRemoteWin)
+            winw = REMOTE_WIN_WIDTH
+            winh = REMOTE_WIN_HEIGHT
+            scrw = self.winfo_screenwidth()
+            scrh = self.winfo_screenheight()
+            x = (scrw - WIDGHT_WIDTH)/2 + WIDGHT_WIDTH
+            y = (scrh - WIDGHT_HEIGHT)/2
+            self.WinSub.geometry('%dx%d+%d+%d' % (winw, winh, x, y))
+            self.WinSub.minsize(200,200)
+
+        for widget in self.WinSub.winfo_children():
+            widget.destroy()
+
+        self.WinSub.title("广播96字节数据")
+        tk.Label(self.WinSub, width=4, anchor=tk.W, text=("序号")).grid(row=0, column=0, sticky=tk.W)
+        tk.Label(self.WinSub, width=12, anchor=tk.W, text=("帧ID(hex)")).grid(row=0, column=1, sticky=tk.W)
+        tk.Label(self.WinSub, width=20, anchor=tk.W, text=("自定义数据(hex)")).grid(row=0, column=2, sticky=tk.W)
+
+        self.entryBcMsgCanid = []
+        self.entryBcMsgData = []
+        for i in range(BC_96_FRAME_NUM):
+            entery = tk.Entry(self.WinSub, width=12)
+            self.entryBcMsgCanid.append(entery)
+            self.entryBcMsgCanid[i].grid(row = i+1, column=1, columnspan=1, sticky=tk.W)
+
+            if i == 0:
+                witdth_tmp = 16
+            elif i == 12:
+                witdth_tmp = 6
+            else:
+                witdth_tmp = 22
+            entery = tk.Entry(self.WinSub, width=witdth_tmp)
+            self.entryBcMsgData.append(entery)
+            self.entryBcMsgData[i].grid(row = i+1, column=2, columnspan=1, sticky=tk.W)
+
+        default_file = "./96.list"
+        obj_value = [0]*16
+        can_id_disply = ['']*16
+        can_data_disply = ['']*16
+        i = 13
+
+        if os.path.exists(default_file):
+            mytree = ET.parse(default_file)
+            myroot = mytree.getroot()
+            i = 0
+            for x in myroot:
+                obj_value[i] = x.get('obj')
+                for j in range(0, 4):
+                    can_id_disply[i] = can_id_disply[i] + obj_value[i][(3-j)*2] + obj_value[i][(3-j)*2+1]
+
+                if i == 0:
+                    for j in range(0, 6):
+                        can_data_disply[i] = can_data_disply[i]+obj_value[i][30+j*2] + obj_value[i][31+j*2] + ' '
+                elif i == 12:
+                    for j in range(0, 2):
+                        can_data_disply[i] = can_data_disply[i]+obj_value[i][26+j*2] + obj_value[i][27+j*2] + ' '
+                else:
+                    for j in range(0, 8):
+                        can_data_disply[i] = can_data_disply[i]+obj_value[i][26+j*2] + obj_value[i][27+j*2] + ' '
+                        
+                #删除最后空格
+                can_data_disply[i] = can_data_disply[i][:-1]
+                i=i+1
+        else:
+            for j in range(0, i):
+                can_id_disply[j] = '00'
+
+                if j == 0:
+                    can_data_disply[j] = '00 00 00 00 00 00'
+                elif j == 12:
+                    can_data_disply[j] = '00 00'
+                else:
+                    can_data_disply[j] = '00 00 00 00 00 00 00 00'
+
+        for j in range(0, i):
+            tk.Label(self.WinSub, width=4, anchor=tk.W, text=("%d"%(j+1))).grid(row=j+1, column=0, sticky=tk.W)
+            self.entryBcMsgCanid[j].insert(0, can_id_disply[j])
+            self.entryBcMsgData[j].insert(0, can_data_disply[j])
+
+        #Send Butten
+        self.strvSend96 = tk.StringVar()
+        self.strvSend96.set("发送")
+        self.btnMsgSend96 = ttk.Button(self.WinSub, width=8, textvariable=self.strvSend96, command=self.BtnSendMsg96_Click) 
+        self.btnMsgSend96.grid(row=14, column=2, padx=0, pady=0)
+        self.btnMsgSend96["state"] = self.btnMsgSend["state"]
+
+        self.strvSelFile = tk.StringVar()
+        self.strvSelFile.set("导入文件")
+        self.btnMsgSelFile = ttk.Button(self.WinSub, width=8, textvariable=self.strvSelFile, command=self.data96_select_file)
+        self.btnMsgSelFile.grid(row=15, column=2, padx=0, pady=0)
+        self.btnMsgSelFile["state"] = tk.NORMAL
 
     def MsgSendWidgetsInit(self):
         #Send Type
@@ -495,7 +665,7 @@ class ZCAN_Demo(tk.Tk):
         #self.cmbDataType.bind('<<ComboboxSelected>>', self.TmtTypeChangeEvent)
         self.cmbDataType["value"] = ("遥测", "复位", "短控", "备份数据请求", "备份数据广播")
         self.cmbDataType.current(0)
-        self.WinRemote = None
+        self.WinSub = None
         self.RemoteDataWindowCreate(0)
         self.entryMsgID.tmp_value += 0<<CANID_DT_POS
 
@@ -556,6 +726,8 @@ class ZCAN_Demo(tk.Tk):
 
         self.entryMsgID.insert(0, self.entryMsgID.tmp_value)
 
+        self.strvSend96 = None
+        self.btnMsgSend96 = None
         self.Rmdata_tmt = 0
         self.Rmdata_cur_cnt = 0
         self.Rmdata_self = [0]*MAX_RMDATA_LEN
@@ -709,9 +881,9 @@ class ZCAN_Demo(tk.Tk):
                 rm_mppt_status[MPPT_CNT-1] = "关"
 
             for i in range(0, MPPT_CNT):
-                tk.Label(self.WinRemote, width=6, anchor=tk.W, text=(str(rm_mppt_v[i]))).grid(row=i+RM_DATA_HEAD_LEN, column=1, sticky=tk.W)
-                tk.Label(self.WinRemote, width=6, anchor=tk.W, text=(str(rm_mppt_i[i]))).grid(row=i+RM_DATA_HEAD_LEN, column=3, sticky=tk.W)
-                tk.Label(self.WinRemote, width=3, anchor=tk.W, text=(rm_mppt_status[i])).grid(row=i+RM_DATA_HEAD_LEN, column=5, sticky=tk.W)
+                tk.Label(self.WinSub, width=6, anchor=tk.W, text=(str(rm_mppt_v[i]))).grid(row=i+RM_DATA_HEAD_LEN, column=1, sticky=tk.W)
+                tk.Label(self.WinSub, width=6, anchor=tk.W, text=(str(rm_mppt_i[i]))).grid(row=i+RM_DATA_HEAD_LEN, column=3, sticky=tk.W)
+                tk.Label(self.WinSub, width=3, anchor=tk.W, text=(rm_mppt_status[i])).grid(row=i+RM_DATA_HEAD_LEN, column=5, sticky=tk.W)
 
     def RmDataBatDisplay(self, self_data):
         rm_bat_v = [0] * 4
@@ -725,9 +897,9 @@ class ZCAN_Demo(tk.Tk):
 
         if (self_data[6]>>7)&0x1 == 1:
             rm_bat_v[3] = -rm_bat_v[3]
-            tk.Label(self.WinRemote, width=6, anchor=tk.W, text=("放电")).grid(row=3+RM_DATA_HEAD_LEN, column=2, sticky=tk.W)
+            tk.Label(self.WinSub, width=6, anchor=tk.W, text=("放电")).grid(row=3+RM_DATA_HEAD_LEN, column=2, sticky=tk.W)
         else:
-            tk.Label(self.WinRemote, width=6, anchor=tk.W, text=("充电")).grid(row=3+RM_DATA_HEAD_LEN, column=2, sticky=tk.W)
+            tk.Label(self.WinSub, width=6, anchor=tk.W, text=("充电")).grid(row=3+RM_DATA_HEAD_LEN, column=2, sticky=tk.W)
 
         for i in range(0,3):
             rm_bat_status[i] = (self_data[8]>>(7-i))&0x1
@@ -737,10 +909,10 @@ class ZCAN_Demo(tk.Tk):
                 rm_bat_status[i] = "禁止"
 
         for i in range(0, 4):
-            tk.Label(self.WinRemote, width=6, anchor=tk.W, text=("{:.2f}".format(rm_bat_v[i]))).grid(row=i+RM_DATA_HEAD_LEN, column=1, sticky=tk.W)
+            tk.Label(self.WinSub, width=6, anchor=tk.W, text=("{:.2f}".format(rm_bat_v[i]))).grid(row=i+RM_DATA_HEAD_LEN, column=1, sticky=tk.W)
 
         for i in range(0, 3):
-            tk.Label(self.WinRemote, width=6, anchor=tk.W, text=(rm_bat_status[i])).grid(row=i+4+RM_DATA_HEAD_LEN, column=1, sticky=tk.W)
+            tk.Label(self.WinSub, width=6, anchor=tk.W, text=(rm_bat_status[i])).grid(row=i+4+RM_DATA_HEAD_LEN, column=1, sticky=tk.W)
 
     def RmDataWingDisplay(self, self_data):
         rm_wing_status1 = [0] * 6
@@ -766,10 +938,10 @@ class ZCAN_Demo(tk.Tk):
             rm_wing_status2[4] = "关"
 
         for i in range(0, 6):
-            tk.Label(self.WinRemote, width=6, anchor=tk.W, text=(rm_wing_status1[i])).grid(row=i+RM_DATA_HEAD_LEN, column=1, sticky=tk.W)
+            tk.Label(self.WinSub, width=6, anchor=tk.W, text=(rm_wing_status1[i])).grid(row=i+RM_DATA_HEAD_LEN, column=1, sticky=tk.W)
 
         for i in range(0, 5):
-            tk.Label(self.WinRemote, width=6, anchor=tk.W, text=(rm_wing_status2[i])).grid(row=i+6+RM_DATA_HEAD_LEN, column=1, sticky=tk.W)
+            tk.Label(self.WinSub, width=6, anchor=tk.W, text=(rm_wing_status2[i])).grid(row=i+6+RM_DATA_HEAD_LEN, column=1, sticky=tk.W)
 
     def RmDataUpdata(self, msgs, msgs_num):
         if (msgs[0].frame.can_id & 0xff) == 1:
@@ -781,11 +953,11 @@ class ZCAN_Demo(tk.Tk):
             RmdataWrongCnt = msgs[0].frame.data[4]&0xf
             RmdataCmdNewest = msgs[0].frame.data[5]
             RmdataBackupCnt =  msgs[0].frame.data[6]
-            tk.Label(self.WinRemote, width=6, anchor=tk.W, text=str(RmdataReqCnt)).grid(row=0, column=1, sticky=tk.W)
-            tk.Label(self.WinRemote, width=6, anchor=tk.W, text=str(RmdataCorrectCnt)).grid(row=1, column=1, sticky=tk.W)
-            tk.Label(self.WinRemote, width=6, anchor=tk.W, text=str(RmdataWrongCnt)).grid(row=2, column=1, sticky=tk.W)
-            tk.Label(self.WinRemote, width=6, anchor=tk.W, text=str(RmdataCmdNewest)).grid(row=3, column=1, sticky=tk.W)
-            tk.Label(self.WinRemote, width=6, anchor=tk.W, text=str(RmdataBackupCnt)).grid(row=4, column=1, sticky=tk.W)
+            tk.Label(self.WinSub, width=6, anchor=tk.W, text=str(RmdataReqCnt)).grid(row=0, column=1, sticky=tk.W)
+            tk.Label(self.WinSub, width=6, anchor=tk.W, text=str(RmdataCorrectCnt)).grid(row=1, column=1, sticky=tk.W)
+            tk.Label(self.WinSub, width=6, anchor=tk.W, text=str(RmdataWrongCnt)).grid(row=2, column=1, sticky=tk.W)
+            tk.Label(self.WinSub, width=6, anchor=tk.W, text=str(RmdataCmdNewest)).grid(row=3, column=1, sticky=tk.W)
+            tk.Label(self.WinSub, width=6, anchor=tk.W, text=str(RmdataBackupCnt)).grid(row=4, column=1, sticky=tk.W)
             self.Rmdata_cur_cnt = 0
             for i in range(0, len(self.Rmdata_self)):
                 self.Rmdata_self[i] = 0
@@ -815,6 +987,30 @@ class ZCAN_Demo(tk.Tk):
             if self.Rmdata_cur_cnt == RM_WING_FRAME_CNT:
                 self.RmDataWingDisplay(self.Rmdata_self)
 
+    def BDataUpdata(self, msgs, msgs_num):
+        if (msgs[0].frame.can_id & 0xff) == 1:
+            self.Rmdata_cur_cnt = 0
+            if msgs[0].frame.data[0] == 0xee:
+                for widget in self.WinSub.winfo_children():
+                    widget.destroy()
+                tk.Label(self.WinSub, width=20, anchor=tk.W, text="数据错误").grid(row=0, column=0, sticky=tk.W)
+                return
+                
+
+		#分包接收
+        for i in range(0, msgs_num):
+            pos = i + self.Rmdata_cur_cnt
+            if pos == 0:
+                value = msgs[i].frame.data[2:8]
+            elif pos == 12:
+                value = msgs[i].frame.data[0:2]
+            else:
+                value = msgs[i].frame.data[0:8]
+
+            tk.Label(self.WinSub, width=20, anchor=tk.W, text=value).grid(row=pos, column=0, sticky=tk.W)
+
+        self.Rmdata_cur_cnt += msgs_num
+
     def MsgReadThreadFunc(self):
         try:
             while not self._terminated:
@@ -839,6 +1035,8 @@ class ZCAN_Demo(tk.Tk):
                                 can_cmd_ok = (can_msgs[0].frame.can_id>>CANID_DT_POS)&0b11111
                                 if can_cmd_ok == DT_REMOTE_RETURN:
                                     self.RmDataUpdata(can_msgs, act_num)
+                                elif can_cmd_ok == DT_BACKUP_RETURN:
+                                    self.BDataUpdata(can_msgs, act_num)
 
                             self._rx_cnt += act_num 
                             self.strvRxCnt.set(str(self._rx_cnt))
@@ -867,7 +1065,10 @@ class ZCAN_Demo(tk.Tk):
                 for i in range(msgs_num):
                     if len(self.treeMsg.get_children()) == MAX_DISPLAY:
                         self.treeMsg.delete(self.treeMsg.get_children()[0])
-                    self.treeMsg.insert('', 'end', values=self.CANFDMsg2View(msgs[i].frame, is_send))
+                    if self.send_type == 0:
+                        self.treeMsg.insert('', 'end', values=self.CANMsg2View(msgs[i].frame, is_send))
+                    else:
+                        self.treeMsg.insert('', 'end', values=self.CANMsg2View(msgs.frame, is_send))
                     #focus section
                     child_id = self.treeMsg.get_children()[-1]
                     self.treeMsg.focus(child_id)
@@ -876,7 +1077,11 @@ class ZCAN_Demo(tk.Tk):
                 for i in range(msgs_num):
                     if len(self.treeMsg.get_children()) == MAX_DISPLAY:
                         self.treeMsg.delete(self.treeMsg.get_children()[0])
-                    self.treeMsg.insert('', 'end', values=self.CANMsg2View(msgs[i].frame, is_send))
+
+                    if self.send_type == 0:
+                        self.treeMsg.insert('', 'end', values=self.CANMsg2View(msgs[i].frame, is_send))
+                    else:
+                        self.treeMsg.insert('', 'end', values=self.CANMsg2View(msgs.frame, is_send))
                     #focus section
                     child_id = self.treeMsg.get_children()[-1]
                     self.treeMsg.focus(child_id)
@@ -894,32 +1099,92 @@ class ZCAN_Demo(tk.Tk):
     def PeriodSendComplete(self):
         self._is_sending = False
         self.strvSend.set("发送")
+        if self.strvSend96 != None:
+            self.strvSend96.set("发送")
         self._send_thread.send_stop()
 
     def PeriodSend(self):
-        if self._is_canfd_msg: 
-            ret = self._zcan.TransmitFD(self._can_handle, self._send_msgs, self._send_num)
-        else:
-            ret = self._zcan.Transmit(self._can_handle, self._send_msgs, self._send_num)
-        
-        #update transmit display
-        self._tx_cnt += ret
-        self.strvTxCnt.set(str(self._tx_cnt))
-        self.ViewDataUpdate(self._send_msgs, ret, self._is_canfd_msg, True)
-        
-        if ret != self._send_num:
-            self.PeriodSendComplete()
-            messagebox.showerror(title="发送报文", message="发送失败！")
-            return
+        if self.send_type == 0:
+            if self._is_canfd_msg: 
+                ret = self._zcan.TransmitFD(self._can_handle, self._send_msgs, self._send_num)
+            else:
+                ret = self._zcan.Transmit(self._can_handle, self._send_msgs, self._send_num)
+            
+            #update transmit display
+            self._tx_cnt += ret
+            self.strvTxCnt.set(str(self._tx_cnt))
+            self.ViewDataUpdate(self._send_msgs, ret, self._is_canfd_msg, True)
+            
+            if ret != self._send_num:
+                self.PeriodSendComplete()
+                messagebox.showerror(title="发送报文", message="发送失败！")
+                return
 
-        self._send_cnt -= 1
-        if self._send_cnt:
-            if self._id_increase:
-                for i in range(self._send_num):
-                    self._send_msgs[i].frame.can_id = self._cur_id
-                    self.PeriodSendIdUpdate(self._send_msgs[i].frame.eff)
+            self._send_cnt -= 1
+            if self._send_cnt>0:
+                if self._id_increase:
+                    for i in range(self._send_num):
+                        self._send_msgs[i].frame.can_id = self._cur_id
+                        self.PeriodSendIdUpdate(self._send_msgs[i].frame.eff)
+            else:
+                self.PeriodSendComplete()
+        
+        elif self.send_type == 1:
+            #填充CANID DATA
+            #self._cur_id = self._send_msgs[BC_96_FRAME_NUM-self._send_cnt].frame.can_id
+            if self._is_canfd_msg: 
+                ret = self._zcan.TransmitFD(self._can_handle, self._send_msgs[BC_96_FRAME_NUM-self._send_num], 1)
+            else:
+                ret = self._zcan.Transmit(self._can_handle, self._send_msgs[BC_96_FRAME_NUM-self._send_num], 1)
+
+            if ret == 0:
+                self.PeriodSendComplete()
+                messagebox.showerror(title="发送报文", message="发送失败！")
+                return
+            #update transmit display
+            self._tx_cnt += ret
+            self.strvTxCnt.set(str(self._tx_cnt))
+            self.ViewDataUpdate(self._send_msgs[BC_96_FRAME_NUM - self._send_num], ret, self._is_canfd_msg, True)
+
+            self._send_num -= 1
+
+            if self._send_num <= 0:
+                self.PeriodSendComplete()
+
+
+    def MsgSend96(self, msg, is_canfd, period=0):
+        self._send_num     = BC_96_FRAME_NUM
+        self._send_cnt     = 1
+        self._is_canfd_msg = 0
+
+        if is_canfd:    
+            self._send_msgs = (ZCAN_TransmitFD_Data * self._send_num)()
         else:
-            self.PeriodSendComplete()
+            self._send_msgs = (ZCAN_Transmit_Data * self._send_num)()
+
+        check_sum = 0
+        for i in range(self._send_num):
+            self._send_msgs[i] = msg
+            self._send_msgs[i].frame.can_id = int(self.entryBcMsgCanid[i].get(), 16)
+
+            data = self.entryBcMsgData[i].get().split(' ')
+            if i == 0:
+                data.insert(0, '00')
+                data.insert(0, '61')
+
+            for j in range(MAX_ONE_DATA_FRAME_LEN):
+                if j < len(data):
+                    try:
+                        self._send_msgs[i].frame.data[j] = int(data[j], 16)
+                    except:
+                        self._send_msgs[i].frame.data[j] = 0
+                else:
+                    self._send_msgs[i].frame.data[j] = 0
+                check_sum += self._send_msgs[i].frame.data[j]
+
+        self._send_msgs[i].frame.data[2] = check_sum & 0xff
+        self._is_sending = True    
+        self._send_thread.send_start(period * 0.001)
 
     def MsgSend(self, msg, is_canfd, num=1, cnt=1, period=0, id_increase=0):
         self._id_increase  = id_increase
@@ -1022,12 +1287,15 @@ class ZCAN_Demo(tk.Tk):
             #cancel send
             if self._is_sending:
                 self.btnMsgSend.invoke()
+                self.btnMsgSend96.invoke()
 
             #Close channel
             self._zcan.ResetCAN(self._can_handle)
             self.strvCANCtrl.set("打开")
             self._isChnOpen = False
             self.btnMsgSend["state"] = tk.DISABLED
+            if self.btnMsgSend96 != None:
+                self.btnMsgSend96["state"] = tk.DISABLED
         else:
             #Initial channel
             if self._res_support: #resistance enable
@@ -1088,6 +1356,8 @@ class ZCAN_Demo(tk.Tk):
             self.strvCANCtrl.set("关闭")
             self._isChnOpen = True 
             self.btnMsgSend["state"] = tk.NORMAL
+            if self.btnMsgSend96 != None:
+                self.btnMsgSend96["state"] = tk.NORMAL
         self.ChnInfoDisplay(not self._isChnOpen)
 
     def BtnClrCnt_Click(self):
@@ -1275,9 +1545,11 @@ class ZCAN_Demo(tk.Tk):
             self.entryMsgID.tmp_value |= 0b11<<20
             self.cmbTmt["value"] = ("获取96字节")
             self.entryMsgData.insert(0, "F5 00 00 00 00 00 00 00")
+            self.Recv96BkDataWindowCreate()
         elif self.cmbDataType.current() == 4:
             self.entryMsgID.tmp_value |= 0b10100<<20
             self.cmbTmt["value"] = ("广播96字节")
+            self.BdCt96DataWindowCreate()
 
         self.cmbTmt.current(0)
         self.entryMsgID.tmp_value = "{:X}".format(self.entryMsgID.tmp_value)
@@ -1327,8 +1599,38 @@ class ZCAN_Demo(tk.Tk):
         self.entryMsgID.delete(0, "end")
         self.entryMsgID.insert(0, self.entryMsgID.tmp_value )
 
+    def BtnSendMsg96_Click(self):
+        if not self._is_sending:
+            self.send_type = 1
+            is_canfd_msg = True if self.cmbMsgCANFD.current() > 0 else False
+            if is_canfd_msg:
+                msg = ZCAN_TransmitFD_Data()
+            else:
+                msg = ZCAN_Transmit_Data()
+
+            msg.transmit_type = self.cmbSendType.current()
+            msg.frame.rtr = self.cmbMsgFormat.current()
+            msg.frame.eff = self.cmbMsgType.current()
+
+            if not is_canfd_msg:
+                msg.frame.can_dlc = self.cmbMsgLen.current()
+                msg_len = msg.frame.can_dlc
+            else:
+                msg.frame.brs = 1 if self.cmbMsgCANFD.current() == 2 else 0
+                msg.frame.len = self.__dlc2len(self.cmbMsgLen.current())
+                msg_len = msg.frame.len
+
+            self.strvSend.set("停止发送")
+            if self.strvSend96 != None:
+                self.strvSend96.set("停止发送")
+
+            self.MsgSend96(msg, False, 0)
+        else:
+            self.PeriodSendComplete()
+
     def BtnSendMsg_Click(self): 
         if not self._is_sending:
+            self.send_type = 0
             is_canfd_msg = True if self.cmbMsgCANFD.current() > 0 else False
             if is_canfd_msg:
                 msg = ZCAN_TransmitFD_Data()
@@ -1371,6 +1673,8 @@ class ZCAN_Demo(tk.Tk):
                 period  = 1
             self.MsgSend(msg, is_canfd_msg, msg_num, msg_cnt, period, self.varIDInc.get())
             self.strvSend.set("停止发送")
+            if self.strvSend96 != None:
+                self.strvSend96.set("停止发送")
         else:
             self.PeriodSendComplete()
 
