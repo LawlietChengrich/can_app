@@ -459,6 +459,53 @@ class ZCAN_Demo(tk.Tk):
             self.entryBcMsgData[j].delete(0, "end")
             self.entryBcMsgData[j].insert(0, can_data_disply[j])
 
+    def data96_export_file(self):
+        filenewpath = filedialog.asksaveasfilename(defaultextension='.list')
+        if filenewpath:
+            with open(filenewpath, 'w') as f:
+                # 创建根节点
+                root = ET.Element("SendList")
+                checksum = 0 
+                can_data = ['']*8
+                for i in range(0, 13):
+                    child3 = ET.SubElement(root, "tagSendUint")
+                    canid = self.entryBcMsgCanid[i].get()
+                    add_len = 8-len(canid)
+                    if add_len<0:
+                        messagebox.showerror(title="导出错误", message="CANID 超出长度")
+                        return
+                    for j in range(0, add_len):
+                        canid = '0' + canid
+
+                    obj_tmp = ""
+                    canid_byte = ""
+                    for j in range(0, 4):
+                        canid_byte = canid[(3-j)*2] + canid[(3-j)*2+1]
+                        obj_tmp = obj_tmp + canid_byte
+                    obj_tmp = obj_tmp + "000000000000000000"
+                    can_data = self.entryBcMsgData[i].get().split(' ')
+                    for j in range(0, len(can_data)):
+                        checksum = checksum + int(can_data[j], 16)
+
+                    if i == 0:
+                        can_data.insert(0, '00')
+                        can_data.insert(0, '61')
+                    elif i == 12:
+                        checksum = str(hex(checksum&0xff))
+                        can_data.insert(2, checksum[2:].zfill(2))
+                        for j in range(0, 5):
+                            can_data.append('00')
+
+                    obj_tmp = obj_tmp + "".join(can_data) + "000000"
+                    child3.set("obj", ""+obj_tmp)
+                    ET.indent(child3, space="\t", level=1)
+                
+                ET.indent(root, space="\t", level=0)
+                # 创建XML树
+                tree = ET.ElementTree(root)
+                
+                # 写入XML文件
+                tree.write(filenewpath, encoding="utf-8", xml_declaration=True, method='xml')
 
     def BdCt96DataWindowCreate(self):
         if self.WinSub == None:
@@ -554,6 +601,12 @@ class ZCAN_Demo(tk.Tk):
         self.btnMsgSelFile = ttk.Button(self.WinSub, width=8, textvariable=self.strvSelFile, command=self.data96_select_file)
         self.btnMsgSelFile.grid(row=15, column=2, padx=0, pady=0)
         self.btnMsgSelFile["state"] = tk.NORMAL
+
+        self.strvExprotFile = tk.StringVar()
+        self.strvExprotFile.set("导出文件")
+        self.btnMsgExprotFile = ttk.Button(self.WinSub, width=8, textvariable=self.strvExprotFile, command=self.data96_export_file)
+        self.btnMsgExprotFile.grid(row=16, column=2, padx=0, pady=0)
+        self.btnMsgExprotFile["state"] = tk.NORMAL
 
     def MsgSendWidgetsInit(self):
         #Send Type
