@@ -60,6 +60,8 @@ BC_96_FRAME_NUM = 13
 USBCANFD_TYPE    = (41, 42, 43)
 USBCAN_XE_U_TYPE = (20, 21, 31)
 USBCAN_I_II_TYPE = (3, 4)
+
+CONFIG_TEXT = './DefaultConfig.list'
 ###############################################################################
 class PeriodSendThread(object):
     def __init__(self, period_func, args=[], kwargs={}):
@@ -124,6 +126,23 @@ class ZCAN_Demo(tk.Tk):
 
         self.DeviceInfoInit()
         self.ChnInfoUpdate(self._isOpen)
+
+        if os.path.exists(CONFIG_TEXT):
+            mytree = ET.parse(CONFIG_TEXT)
+            myroot = mytree.getroot()
+            x = myroot.find('selected96_path')
+            self.defalut96file = x.text
+        else:
+            with open(CONFIG_TEXT, 'w') as file:
+                root = ET.Element("Config")
+                child3 = ET.SubElement(root, "selected96_path")
+                child3.text = "96.list"
+                ET.indent(child3, space="\t", level=1)
+                ET.indent(root, space="\t", level=0)
+                tree = ET.ElementTree(root)
+                tree.write(CONFIG_TEXT, encoding="utf-8", xml_declaration=True, method='xml')
+                self.defalut96file = child3.text
+
 
     def DeviceInit(self):
         self._zcan       = ZCAN() 
@@ -451,6 +470,14 @@ class ZCAN_Demo(tk.Tk):
                 i=i+1
         except:
             messagebox.showerror(title="导入文件", message="文件错误，导入失败")
+            return
+
+        self.defalut96file = filename
+        mytree = ET.parse(CONFIG_TEXT)
+        myroot = mytree.getroot()
+        x = myroot.find('selected96_path')
+        x.text = self.defalut96file
+        mytree.write(CONFIG_TEXT, encoding="utf-8", xml_declaration=True, method='xml')
 
         for j in range(0, i):
             tk.Label(self.WinSub, width=4, anchor=tk.W, text=("%d"%(j+1))).grid(row=j+1, column=0, sticky=tk.W)
@@ -545,34 +572,45 @@ class ZCAN_Demo(tk.Tk):
             self.entryBcMsgData.append(entery)
             self.entryBcMsgData[i].grid(row = i+1, column=2, columnspan=1, sticky=tk.W)
 
-        default_file = "./96.list"
         obj_value = [0]*16
         can_id_disply = ['']*16
         can_data_disply = ['']*16
         i = 13
 
-        if os.path.exists(default_file):
-            mytree = ET.parse(default_file)
-            myroot = mytree.getroot()
-            i = 0
-            for x in myroot:
-                obj_value[i] = x.get('obj')
-                for j in range(0, 4):
-                    can_id_disply[i] = can_id_disply[i] + obj_value[i][(3-j)*2] + obj_value[i][(3-j)*2+1]
+        if os.path.exists(self.defalut96file):
+            try:
+                mytree = ET.parse(self.defalut96file)
+                myroot = mytree.getroot()
+                i = 0
+                for x in myroot:
+                    obj_value[i] = x.get('obj')
+                    for j in range(0, 4):
+                        can_id_disply[i] = can_id_disply[i] + obj_value[i][(3-j)*2] + obj_value[i][(3-j)*2+1]
 
-                if i == 0:
-                    for j in range(0, 6):
-                        can_data_disply[i] = can_data_disply[i]+obj_value[i][30+j*2] + obj_value[i][31+j*2] + ' '
-                elif i == 12:
-                    for j in range(0, 2):
-                        can_data_disply[i] = can_data_disply[i]+obj_value[i][26+j*2] + obj_value[i][27+j*2] + ' '
-                else:
-                    for j in range(0, 8):
-                        can_data_disply[i] = can_data_disply[i]+obj_value[i][26+j*2] + obj_value[i][27+j*2] + ' '
-                        
-                #删除最后空格
-                can_data_disply[i] = can_data_disply[i][:-1]
-                i=i+1
+                    if i == 0:
+                        for j in range(0, 6):
+                            can_data_disply[i] = can_data_disply[i]+obj_value[i][30+j*2] + obj_value[i][31+j*2] + ' '
+                    elif i == 12:
+                        for j in range(0, 2):
+                            can_data_disply[i] = can_data_disply[i]+obj_value[i][26+j*2] + obj_value[i][27+j*2] + ' '
+                    else:
+                        for j in range(0, 8):
+                            can_data_disply[i] = can_data_disply[i]+obj_value[i][26+j*2] + obj_value[i][27+j*2] + ' '
+                            
+                    #删除最后空格
+                    can_data_disply[i] = can_data_disply[i][:-1]
+                    i=i+1
+            except:
+                messagebox.showerror(title="导入文件", message="文件错误，导入失败")
+                for j in range(0, i):
+                    can_id_disply[j] = '00'
+
+                    if j == 0:
+                        can_data_disply[j] = '00 00 00 00 00 00'
+                    elif j == 12:
+                        can_data_disply[j] = '00 00'
+                    else:
+                        can_data_disply[j] = '00 00 00 00 00 00 00 00'
         else:
             for j in range(0, i):
                 can_id_disply[j] = '00'
