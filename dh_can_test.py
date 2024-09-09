@@ -403,6 +403,7 @@ class ZCAN_Demo(tk.Tk):
                 "飞轮Z:",
                 "飞轮S:",
                 "帆板天线解锁:",
+                "飞行插头:",
                 ]
 
             for i in range(0, len(tmt_value)):
@@ -1007,7 +1008,7 @@ class ZCAN_Demo(tk.Tk):
 
     def RmDataWingDisplay(self, self_data):
         rm_wing_status1 = [0] * 6
-        rm_wing_status2 = [0] * 5
+        rm_wing_status2 = [0] * 6
 
         for i in range(0,6):
             rm_wing_status1[i] = (self_data[0]>>(7-i))&0x1
@@ -1028,10 +1029,15 @@ class ZCAN_Demo(tk.Tk):
         else:
             rm_wing_status2[4] = "关"
 
+        if ((self_data[1]>>2)&0x1) == 1:
+            rm_wing_status2[5] = "接通"
+        else:
+            rm_wing_status2[5] = "断开"
+
         for i in range(0, 6):
             tk.Label(self.WinSub, width=6, anchor=tk.W, text=(rm_wing_status1[i])).grid(row=i+RM_DATA_HEAD_LEN, column=1, sticky=tk.W)
 
-        for i in range(0, 5):
+        for i in range(0, 6):
             tk.Label(self.WinSub, width=6, anchor=tk.W, text=(rm_wing_status2[i])).grid(row=i+6+RM_DATA_HEAD_LEN, column=1, sticky=tk.W)
 
     def RmDataUpdata(self, msgs, msgs_num):
