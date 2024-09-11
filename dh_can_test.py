@@ -185,7 +185,7 @@ class ZCAN_Demo(tk.Tk):
         self.gbDevConnect.grid(row=0, column=0, padx=2, pady=2, sticky=tk.NE)
         self.DevConnectWidgetsInit()
 
-        self.gbCANCfg = tk.LabelFrame(self._dev_frame, height=170, width=GRPBOX_WIDTH, text="通道配置")
+        self.gbCANCfg = tk.LabelFrame(self._dev_frame, height=130, width=GRPBOX_WIDTH, text="通道配置")
         self.gbCANCfg.grid(row=1, column=0, padx=2, pady=2, sticky=tk.NSEW)
         self.gbCANCfg.grid_propagate(0)
         self.CANChnWidgetsInit()
@@ -243,16 +243,6 @@ class ZCAN_Demo(tk.Tk):
         tk.Label(self.gbCANCfg, anchor=tk.W, text="波特率:").grid(row=2, column=0, sticky=tk.W)
         self.cmbBaudrate = ttk.Combobox(self.gbCANCfg, width=12, state="readonly")
         self.cmbBaudrate.grid(row=2, column=1, sticky=tk.W)
-        
-        #CAN Data Baudrate 
-        tk.Label(self.gbCANCfg, anchor=tk.W, text="数据域波特率:").grid(row=3, column=0, sticky=tk.W)
-        self.cmbDataBaudrate = ttk.Combobox(self.gbCANCfg, width=12, state="readonly")
-        self.cmbDataBaudrate.grid(row=3, column=1, sticky=tk.W)
-
-        #resistance enable
-        tk.Label(self.gbCANCfg, anchor=tk.W, text="终端电阻:").grid(row=4, column=0, sticky=tk.W)
-        self.cmbResEnable = ttk.Combobox(self.gbCANCfg, width=12, state="readonly")
-        self.cmbResEnable.grid(row=4, column=1, sticky=tk.W)
 
         #CAN Control
         self.strvCANCtrl = tk.StringVar()
@@ -680,8 +670,11 @@ class ZCAN_Demo(tk.Tk):
 
         #CAN ID
         tk.Label(self.gbMsgSend, anchor=tk.W, text="帧ID(hex):").grid(row=1, column=0, sticky=tk.W)
-        self.entryMsgID = tk.Entry(self.gbMsgSend, width=10, text="100")
+        self.entryMsgID = tk.Entry(self.gbMsgSend, width=10)
         self.entryMsgID.grid(row=1, column=1, sticky=tk.W)
+
+        self.entryMsgID.bind('<KeyRelease>', self.CanIdChangeEvent)
+
         self.entryMsgID.tmp_value = 0 
         #self.entryMsgID.insert(0, "100")
 
@@ -734,7 +727,7 @@ class ZCAN_Demo(tk.Tk):
         tk.Label(self.gbMsgSend, anchor=tk.W, text="优先级(P):").grid(row=4, column=0, sticky=tk.W)
         self.cmbProvity = ttk.Combobox(self.gbMsgSend, width=6, state="readonly")
         self.cmbProvity.grid(row = 4, column=1, sticky=tk.W)
-        self.cmbProvity.bind('<<ComboboxSelected>>', self.CanIdChangeEvent)
+        self.cmbProvity.bind('<<ComboboxSelected>>', self.SelfDefChangeEvent)
         self.cmbProvity["value"] = ("主节点", "从节点")
         self.cmbProvity.current(0)
         self.entryMsgID.tmp_value += 0b11<<CANID_PRO_POS
@@ -743,7 +736,7 @@ class ZCAN_Demo(tk.Tk):
         tk.Label(self.gbMsgSend, anchor=tk.W, text="总线标志(LT):").grid(row=4, column=2, sticky=tk.W)
         self.cmbBusFlag = ttk.Combobox(self.gbMsgSend, width=6, state="readonly")
         self.cmbBusFlag.grid(row = 4, column=3, sticky=tk.W)
-        self.cmbBusFlag.bind('<<ComboboxSelected>>', self.CanIdChangeEvent)
+        self.cmbBusFlag.bind('<<ComboboxSelected>>', self.SelfDefChangeEvent)
         self.cmbBusFlag["value"] = ("A总线", "B总线")
         self.cmbBusFlag.current(1)
         self.entryMsgID.tmp_value += 1<<CANID_BUS_POS
@@ -753,8 +746,6 @@ class ZCAN_Demo(tk.Tk):
         self.cmbDataType = ttk.Combobox(self.gbMsgSend, width=8, state="readonly")
         self.cmbDataType.grid(row = 5, column=1, sticky=tk.W)
         self.cmbDataType.bind('<<ComboboxSelected>>', self.DataTypeChangeEvent)
-        #self.cmbDataType.bind('<<ComboboxSelected>>', self.CanIdChangeEvent)
-        #self.cmbDataType.bind('<<ComboboxSelected>>', self.TmtTypeChangeEvent)
         self.cmbDataType["value"] = ("遥测", "复位", "短控", "备份数据请求", "备份数据广播")
         self.cmbDataType.current(0)
         self.WinSub = None
@@ -784,7 +775,7 @@ class ZCAN_Demo(tk.Tk):
         tk.Label(self.gbMsgSend, anchor=tk.W, text="目的地址(DA):").grid(row=6, column=0, sticky=tk.W)
         self.cmbDa = ttk.Combobox(self.gbMsgSend, width=6, state="readonly")
         self.cmbDa.grid(row = 6, column=1, sticky=tk.W)
-        self.cmbDa.bind('<<ComboboxSelected>>', self.CanIdChangeEvent)
+        self.cmbDa.bind('<<ComboboxSelected>>', self.SelfDefChangeEvent)
         self.cmbDa["value"] = ("星算", "电控主", "电控备", "广播")
         self.cmbDa.current(2)
         self.entryMsgID.tmp_value += 0b10001<<CANID_DA_POS
@@ -794,7 +785,7 @@ class ZCAN_Demo(tk.Tk):
         self.cmbSa = ttk.Combobox(self.gbMsgSend, width=6, state="readonly")
         self.cmbSa.grid(row = 6, column=3, sticky=tk.W)
 
-        self.cmbSa.bind('<<ComboboxSelected>>', self.CanIdChangeEvent)
+        self.cmbSa.bind('<<ComboboxSelected>>', self.SelfDefChangeEvent)
         self.cmbSa["value"] = ("星算", "电控主", "电控备")
         self.cmbSa.current(0)
 
@@ -803,14 +794,14 @@ class ZCAN_Demo(tk.Tk):
         self.cmbFt = ttk.Combobox(self.gbMsgSend, width=6, state="readonly")
         self.cmbFt.grid(row = 6, column=5, sticky=tk.W)
 
-        self.cmbFt.bind('<<ComboboxSelected>>', self.CanIdChangeEvent)
+        self.cmbFt.bind('<<ComboboxSelected>>', self.SelfDefChangeEvent)
         self.cmbFt["value"] = ("单帧", "复首", "复中", "复尾")
         self.cmbFt.current(0)
 
         tk.Label(self.gbMsgSend, anchor=tk.W, text="帧计数(FC):").grid(row=6, column=6, sticky=tk.W)
         self.entryFc = tk.Entry(self.gbMsgSend, width=8)
         self.entryFc.grid(row=6, column=7, sticky=tk.W) 
-        self.entryFc.bind('<KeyRelease>', self.CanIdChangeEvent)
+        self.entryFc.bind('<KeyRelease>', self.SelfDefChangeEvent)
         self.entryFc.insert(0, 1)
         self.entryMsgID.tmp_value += 1
 
@@ -908,30 +899,15 @@ class ZCAN_Demo(tk.Tk):
             self.cmbBaudrate["value"] = tuple([brt for brt in cur_chn_info["baudrate"].keys()])
             self.cmbBaudrate.current(len(self.cmbBaudrate["value"]) - 3)
 
-            if cur_chn_info["is_canfd"] == True:
-                # 数据域波特率 
-                self.cmbDataBaudrate["value"] = tuple([brt for brt in cur_chn_info["data_baudrate"].keys()])
-                self.cmbDataBaudrate.current(0)
-                self.cmbDataBaudrate["state"] = "readonly"
-
-            if cur_chn_info["sf_res"] == True:
-                self.cmbResEnable["value"] = ("使能", "失能")
-                self.cmbResEnable.current(0)
-                self.cmbResEnable["state"] = "readonly"
-
             self.btnCANCtrl["state"] = tk.NORMAL
         else:
             self.cmbCANChn["state"] = tk.DISABLED
             self.cmbCANMode["state"] = tk.DISABLED
             self.cmbBaudrate["state"] = tk.DISABLED
-            self.cmbDataBaudrate["state"] = tk.DISABLED
-            self.cmbResEnable["state"] = tk.DISABLED
             
             self.cmbCANChn["value"] = ()
             self.cmbCANMode["value"] = ()
             self.cmbBaudrate["value"] = ()
-            self.cmbDataBaudrate["value"] = ()
-            self.cmbResEnable["value"] = ()
 
             self.btnCANCtrl["state"] = tk.DISABLED
 
@@ -940,16 +916,11 @@ class ZCAN_Demo(tk.Tk):
             self.cmbCANChn["state"] = "readonly"
             self.cmbCANMode["state"] = "readonly"
             self.cmbBaudrate["state"] = "readonly" 
-            if self._is_canfd: 
-                self.cmbDataBaudrate["state"] = "readonly" 
-            if self._res_support: 
-                self.cmbResEnable["state"] = "readonly"
+
         else:
             self.cmbCANChn["state"] = tk.DISABLED
             self.cmbCANMode["state"] = tk.DISABLED
             self.cmbBaudrate["state"] = tk.DISABLED
-            self.cmbDataBaudrate["state"] = tk.DISABLED
-            self.cmbResEnable["state"] = tk.DISABLED
 
     def RmDataMpptDisplay(self, self_data):
             rm_mppt_v = [0] * MPPT_CNT
@@ -1395,12 +1366,6 @@ class ZCAN_Demo(tk.Tk):
                 self.btnMsgSend96["state"] = tk.DISABLED
         else:
             #Initial channel
-            if self._res_support: #resistance enable
-                ip = self._zcan.GetIProperty(self._dev_handle)
-                self._zcan.SetValue(ip, 
-                                    str(self.cmbCANChn.current()) + "/initenal_resistance", 
-                                    '1' if self.cmbResEnable.current() == 0 else '0')
-                self._zcan.ReleaseIProperty(ip)
 
             #set usbcan-e-u baudrate
             if self._cur_dev_info["dev_type"] in USBCAN_XE_U_TYPE:
@@ -1418,18 +1383,14 @@ class ZCAN_Demo(tk.Tk):
             
             chn_cfg = ZCAN_CHANNEL_INIT_CONFIG()
             chn_cfg.can_type = ZCAN_TYPE_CANFD if self._is_canfd else ZCAN_TYPE_CAN
-            if self._is_canfd:
-                chn_cfg.config.canfd.mode = self.cmbCANMode.current()
-                chn_cfg.config.canfd.abit_timing = self._cur_dev_info["chn_info"]["baudrate"][self.cmbBaudrate.get()]
-                chn_cfg.config.canfd.dbit_timing = self._cur_dev_info["chn_info"]["data_baudrate"][self.cmbDataBaudrate.get()]
-            else:
-                chn_cfg.config.can.mode = self.cmbCANMode.current()
-                if self._cur_dev_info["dev_type"] in USBCAN_I_II_TYPE:
-                    brt = self._cur_dev_info["chn_info"]["baudrate"][self.cmbBaudrate.get()]
-                    chn_cfg.config.can.timing0 = brt["timing0"] 
-                    chn_cfg.config.can.timing1 = brt["timing1"]
-                    chn_cfg.config.can.acc_code = 0
-                    chn_cfg.config.can.acc_mask = 0xFFFFFFFF
+
+            chn_cfg.config.can.mode = self.cmbCANMode.current()
+            if self._cur_dev_info["dev_type"] in USBCAN_I_II_TYPE:
+                brt = self._cur_dev_info["chn_info"]["baudrate"][self.cmbBaudrate.get()]
+                chn_cfg.config.can.timing0 = brt["timing0"] 
+                chn_cfg.config.can.timing1 = brt["timing1"]
+                chn_cfg.config.can.acc_code = 0
+                chn_cfg.config.can.acc_mask = 0xFFFFFFFF
 
             self._can_handle = self._zcan.InitCAN(self._dev_handle, self.cmbCANChn.current(), chn_cfg)
             if self._can_handle == INVALID_CHANNEL_HANDLE:
@@ -1595,7 +1556,6 @@ class ZCAN_Demo(tk.Tk):
             self.entryMsgData.insert(0, "F5 00 00 00 00 00 00 00")
 
     def DataTypeChangeEvent(self, *args):
-        print(456)
         if isinstance(self.entryMsgID.tmp_value, str):
             self.entryMsgID.tmp_value = int(self.entryMsgID.tmp_value, 16)
 
@@ -1654,6 +1614,135 @@ class ZCAN_Demo(tk.Tk):
         self.entryMsgID.insert(0, self.entryMsgID.tmp_value )
 
     def CanIdChangeEvent(self, *args):
+        errflag = 0
+        foustmp = self.entryMsgID.index("insert")
+        stringtmp = self.entryMsgID.get()
+        if(len(stringtmp)>8):
+            #foustmp = self.entryMsgID.index("insert")
+            stringtmp = stringtmp[0:8]
+            self.entryMsgID.delete(0, "end")
+            self.entryMsgID.insert(0, stringtmp)
+            #self.entryMsgID.icursor(foustmp)
+        try:
+            self.entryMsgID.tmp_value = int(stringtmp, 16)
+        except:
+            self.entryMsgID.tmp_value = 0
+        #self.entryMsgID.set()
+
+        fc_tmp = self.entryMsgID.tmp_value&0xff
+        ft_tmp = (self.entryMsgID.tmp_value>>8)&0b11
+        sa_tmp = (self.entryMsgID.tmp_value>>10)&0b11111
+        da_tmp = (self.entryMsgID.tmp_value>>15)&0b11111
+        dt_tmp = (self.entryMsgID.tmp_value>>20)&0b11111
+        lt_tmp = (self.entryMsgID.tmp_value>>25)&0b1
+        p_tmp = (self.entryMsgID.tmp_value>>26)&0b111
+
+        self.entryFc.delete(0, "end")
+        self.entryFc.insert(0, fc_tmp)
+        self.cmbFt.current(ft_tmp)
+
+        if sa_tmp == 0b10000:
+            sa_tmp = 1
+        elif sa_tmp == 0b10001:
+            sa_tmp = 2
+        elif sa_tmp == 0:
+            sa_tmp = 0
+        else:
+            sa_tmp = 0
+        self.cmbSa.current(sa_tmp)
+
+        if da_tmp == 0b10000:
+            da_tmp = 1
+        elif da_tmp == 0b10001:
+            da_tmp = 2
+        elif da_tmp == 0b11111:
+             da_tmp = 3
+        elif da_tmp == 0:
+             da_tmp = 0
+        else:
+            errflag = 1
+            da_tmp = 0
+        self.cmbDa.current(da_tmp)
+
+        if dt_tmp == 0b00001:
+            dt_tmp = 1
+        elif dt_tmp == 0b00010:
+            dt_tmp = 2
+        elif dt_tmp == 0b00011:
+             dt_tmp = 3
+        elif dt_tmp == 0b10100:
+             dt_tmp = 4
+        elif dt_tmp == 0:
+             dt_tmp = 0
+        else:
+            dt_tmp = 0
+            errflag = 1
+
+        self.cmbDataType.current(dt_tmp)
+        #self.DataTypeChangeEvent(self)
+        self.entryMsgData.delete(0, "end")
+        self.CloseRemoteWin()
+        if self.cmbDataType.current() == 0:
+            self.cmbTmt["value"] = ("MPPT", "BAT", "WING")
+            self.entryMsgData.insert(0, "FF 00 00 00 00 00 00 00")
+            self.RemoteDataWindowCreate(0)
+        elif self.cmbDataType.current() == 1:
+            self.cmbTmt["value"] = ("复位CANAB", "复位CANA", "复位CANB")
+            self.entryMsgData.insert(0, "F9 00 00 00 00 00 00 00")
+        elif self.cmbDataType.current() == 2:
+            self.cmbTmt["value"] = ("MPPT", "BAT", "WING1","WING2")
+            self.cmbTmtPar["value"] = (
+                                        "MPPT1控制关", 
+                                        "MPPT1控制开", 
+                                        "MPPT2控制关", 
+                                        "MPPT2控制开", 
+                                        "MPPT3控制关", 
+                                        "MPPT3控制开", 
+                                        "MPPT4控制关", 
+                                        "MPPT4控制开", 
+                                        "MPPT5控制关", 
+                                        "MPPT5控制开", 
+                                        "MPPT6控制关", 
+                                        "MPPT6控制开", 
+                                        "MPPT7控制关", 
+                                        "MPPT7控制开", 
+                                        "MPPT8控制关", 
+                                        "MPPT8控制开", 
+                                        "MPPT9控制关", 
+                                        "MPPT9控制开", 
+                                       )
+            self.cmbTmtPar.current(0)
+            self.entryMsgData.insert(0, "01 00 00 00 00 00 00 00")
+        elif self.cmbDataType.current() == 3:
+            self.cmbTmt["value"] = ("获取96字节")
+            self.entryMsgData.insert(0, "F5 00 00 00 00 00 00 00")
+            self.Recv96BkDataWindowCreate()
+        elif self.cmbDataType.current() == 4:
+            self.cmbTmt["value"] = ("广播96字节")
+            self.BdCt96DataWindowCreate()
+        else:
+            errflag = 1
+
+        self.cmbTmt.current(0)
+
+        self.cmbBusFlag.current(lt_tmp)
+
+        if p_tmp == 0b110:
+            p_tmp = 1
+        elif p_tmp == 0b11:
+            p_tmp = 0
+        else:
+            errflag = 1
+            p_tmp = 0
+        
+        self.cmbProvity.current(p_tmp)
+        self.entryMsgID.icursor(foustmp)
+        if errflag == 1:
+            self.entryMsgID.configure(background='red')
+        else:
+            self.entryMsgID.configure(background='white')
+
+    def SelfDefChangeEvent(self, *args):
         print(123)
         if isinstance(self.entryMsgID.tmp_value, str):
             self.entryMsgID.tmp_value = int(self.entryMsgID.tmp_value, 16)
