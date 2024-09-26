@@ -23,6 +23,7 @@ import json
 import os
 import xml.etree.cElementTree as ET
 from tkinter import filedialog
+import ctypes
 
 GRPBOX_WIDTH    = 200
 MSGCNT_WIDTH    = 50
@@ -43,12 +44,14 @@ WIDGHT_HEIGHT   = MSGVIEW_HEIGHT + SENDVIEW_HEIGHT + 20
 RM_DATA_HEAD_LEN = 5
 MAX_RMDATA_LEN = 128
 MPPT_CNT = 9
+TEMP_SENSOR_CNT = 13
 MAX_ONE_DATA_FRAME_LEN = 8
 MAX_DISPLAY     = 1000
 MAX_RCV_NUM     = 10
 RM_MPPT_FRAME_CNT = 6
 RM_BAT_FRAME_CNT = 3
 RM_WING_FRAME_CNT = 2
+RM_TEMP_FRAME_CNT = 5
 DT_REMOTE_RETURN = 0b110
 DT_BACKUP_RETURN = 0b101
 CANID_PRO_POS = 26
@@ -394,6 +397,27 @@ class ZCAN_Demo(tk.Tk):
                 "飞轮S:",
                 "帆板天线解锁:",
                 "飞行插头:",
+                ]
+
+            for i in range(0, len(tmt_value)):
+                tk.Label(self.WinSub, width=12, anchor=tk.W, text=(tmt_value[i])).grid(row=i+RM_DATA_HEAD_LEN, column=0, sticky=tk.W)
+                tk.Label(self.WinSub, width=12, anchor=tk.W, text=("未知")).grid(row=i+RM_DATA_HEAD_LEN, column=1, sticky=tk.W)
+        elif tmt == 3:
+            self.WinSub.title("遥测温度数据")
+            tmt_value = [
+                    "测温点1(℃):",
+                    "测温点2(℃):",
+                    "测温点3(℃):",
+                    "测温点4(℃)",
+                    "测温点5(℃):",
+                    "测温点6(℃):",
+                    "测温点7(℃):",
+                    "测温点8(℃):",
+                    "测温点9(℃):",
+                    "测温点10(℃):",
+                    "测温点11(℃):",
+                    "测温点12(℃):",
+                    "测温点13(℃):",
                 ]
 
             for i in range(0, len(tmt_value)):
@@ -760,7 +784,7 @@ class ZCAN_Demo(tk.Tk):
         self.cmbTmt.grid(row = 5, column=3, sticky=tk.W)
 
         self.cmbTmt.bind('<<ComboboxSelected>>', self.TmtTypeChangeEvent)
-        self.cmbTmt["value"] = ("MPPT", "BAT", "WING")
+        self.cmbTmt["value"] = ("MPPT", "BAT", "WING", "TEMP")
         self.cmbTmt.current(0)
 
         #指令码参数
@@ -955,14 +979,16 @@ class ZCAN_Demo(tk.Tk):
         for i in range(0, 3):
             rm_bat_v[i] = self_data[2*i] + self_data[2*i+1]*0.01
 
-        rm_bat_v[3] = (self_data[6]&0x7f) + self_data[7]*0.01
+        rm_bat_v[3] = ctypes.c_int8(self_data[6]).value + ctypes.c_int8(self_data[7]).value *0.01
+        rm_bat_v[3] = round(rm_bat_v[3],2)
 
-
-        if (self_data[6]>>7)&0x1 == 1:
+        if rm_bat_v[3] < 0:
             rm_bat_v[3] = -rm_bat_v[3]
             tk.Label(self.WinSub, width=6, anchor=tk.W, text=("放电")).grid(row=3+RM_DATA_HEAD_LEN, column=2, sticky=tk.W)
-        else:
+        elif rm_bat_v[3] > 0:
             tk.Label(self.WinSub, width=6, anchor=tk.W, text=("充电")).grid(row=3+RM_DATA_HEAD_LEN, column=2, sticky=tk.W)
+        else:
+            tk.Label(self.WinSub, width=6, anchor=tk.W, text=("  ")).grid(row=3+RM_DATA_HEAD_LEN, column=2, sticky=tk.W)
 
         for i in range(0,3):
             rm_bat_status[i] = (self_data[8]>>(7-i))&0x1
@@ -1011,6 +1037,17 @@ class ZCAN_Demo(tk.Tk):
         for i in range(0, 6):
             tk.Label(self.WinSub, width=6, anchor=tk.W, text=(rm_wing_status2[i])).grid(row=i+6+RM_DATA_HEAD_LEN, column=1, sticky=tk.W)
 
+    def RmDataTempDisplay(self, self_data):
+        rm_temp_val = [0] * TEMP_SENSOR_CNT
+        
+        for i in range(0, TEMP_SENSOR_CNT):
+            rm_temp_val[i] = ctypes.c_int8(self_data[2*i]).value + ctypes.c_int8(self_data[2*i+1]).value *0.01
+            rm_temp_val[i] = round(rm_temp_val[i], 2)
+
+        for i in range(0, TEMP_SENSOR_CNT):
+            tk.Label(self.WinSub, width=6, anchor=tk.W, text=(str(rm_temp_val[i]))).grid(row=i+RM_DATA_HEAD_LEN, column=1, sticky=tk.W)
+
+
     def RmDataUpdata(self, msgs, msgs_num):
         if (msgs[0].frame.can_id & 0xff) == 1:
 			#收到首包重置显示数据
@@ -1054,6 +1091,9 @@ class ZCAN_Demo(tk.Tk):
         elif self.Rmdata_tmt == 0xfd:
             if self.Rmdata_cur_cnt == RM_WING_FRAME_CNT:
                 self.RmDataWingDisplay(self.Rmdata_self)
+        elif self.Rmdata_tmt == 0xfc:
+            if self.Rmdata_cur_cnt == RM_TEMP_FRAME_CNT:
+                self.RmDataTempDisplay(self.Rmdata_self)
 
     def BDataUpdata(self, msgs, msgs_num):
         if (msgs[0].frame.can_id & 0xff) == 1:
@@ -1472,6 +1512,8 @@ class ZCAN_Demo(tk.Tk):
                 self.entryMsgData.insert(0, "FE 00 00 00 00 00 00 00")
             elif self.cmbTmt.current() == 2:
                 self.entryMsgData.insert(0, "FD 00 00 00 00 00 00 00")
+            elif self.cmbTmt.current() == 3:
+                self.entryMsgData.insert(0, "FC 00 00 00 00 00 00 00")
         elif self.cmbDataType.current() == 1:
             if self.cmbTmt.current() == 0:
                 self.entryMsgData.insert(0, "F9 00 00 00 00 00 00 00")
@@ -1566,7 +1608,7 @@ class ZCAN_Demo(tk.Tk):
         self.CloseRemoteWin()
 
         if self.cmbDataType.current() == 0:
-            self.cmbTmt["value"] = ("MPPT", "BAT", "WING")
+            self.cmbTmt["value"] = ("MPPT", "BAT", "WING", "TEMP")
             self.entryMsgData.insert(0, "FF 00 00 00 00 00 00 00")
             self.RemoteDataWindowCreate(0)
         elif self.cmbDataType.current() == 1:
@@ -1683,7 +1725,7 @@ class ZCAN_Demo(tk.Tk):
         self.entryMsgData.delete(0, "end")
         self.CloseRemoteWin()
         if self.cmbDataType.current() == 0:
-            self.cmbTmt["value"] = ("MPPT", "BAT", "WING")
+            self.cmbTmt["value"] = ("MPPT", "BAT", "WING", "TEMP")
             self.entryMsgData.insert(0, "FF 00 00 00 00 00 00 00")
             self.RemoteDataWindowCreate(0)
         elif self.cmbDataType.current() == 1:
