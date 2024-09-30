@@ -1,15 +1,5 @@
 #  zlgcan_demo.py
 #
-#  ~~~~~~~~~~~~
-#
-#  ZLGCAN USBCANFD Demo
-#
-#  ~~~~~~~~~~~~
-#
-#  ------------------------------------------------------------------
-#  Author : guochuangjian    
-#  Last change: 17.01.2019
-#
 #  Language: Python 3.6
 #  ------------------------------------------------------------------
 #
@@ -773,6 +763,9 @@ class ZCAN_Demo(tk.Tk):
         self.cmbDataType["value"] = ("遥测", "复位", "短控", "备份数据请求", "备份数据广播")
         self.cmbDataType.current(0)
         self.WinSub = None
+        self.adadad = 0
+        self.bind("<Map>", self.DhWindowsChangefEvent)
+        self.bind("<Unmap>", self.DhWindowsChangefEvent)
         self.RemoteDataWindowCreate(0)
         self.entryMsgID.tmp_value += 0<<CANID_DT_POS
 
@@ -1335,6 +1328,13 @@ class ZCAN_Demo(tk.Tk):
 ###############################################################################
 ### Event handers
 ###############################################################################
+    def DhWindowsChangefEvent(self, event):
+        if self.WinSub != None:
+            if self.state() == "iconic":
+                self.WinSub.state("iconic")
+            elif self.state() == "normal":
+                self.WinSub.state("normal")
+
     def Form_OnClosing(self):
         if self._isOpen:
             self.btnDevCtrl.invoke()
