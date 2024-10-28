@@ -55,6 +55,7 @@ USBCAN_XE_U_TYPE = (20, 21, 31)
 USBCAN_I_II_TYPE = (3, 4)
 
 CONFIG_TEXT = './DefaultConfig.list'
+XML_OBJECT_96PATH = 'selected96_path'
 ###############################################################################
 class PeriodSendThread(object):
     def __init__(self, period_func, args=[], kwargs={}):
@@ -123,12 +124,12 @@ class ZCAN_Demo(tk.Tk):
         if os.path.exists(CONFIG_TEXT):
             mytree = ET.parse(CONFIG_TEXT)
             myroot = mytree.getroot()
-            x = myroot.find('selected96_path')
+            x = myroot.find(XML_OBJECT_96PATH)
             self.defalut96file = x.text
         else:
             with open(CONFIG_TEXT, 'w') as file:
                 root = ET.Element("Config")
-                child3 = ET.SubElement(root, "selected96_path")
+                child3 = ET.SubElement(root, XML_OBJECT_96PATH)
                 child3.text = "96.list"
                 ET.indent(child3, space="\t", level=1)
                 ET.indent(root, space="\t", level=0)
@@ -480,7 +481,7 @@ class ZCAN_Demo(tk.Tk):
         self.defalut96file = filename
         mytree = ET.parse(CONFIG_TEXT)
         myroot = mytree.getroot()
-        x = myroot.find('selected96_path')
+        x = myroot.find(XML_OBJECT_96PATH)
         x.text = self.defalut96file
         mytree.write(CONFIG_TEXT, encoding="utf-8", xml_declaration=True, method='xml')
 
@@ -1797,16 +1798,7 @@ class ZCAN_Demo(tk.Tk):
 
         if self.cmbBusFlag.current() == 1:
             self.entryMsgID.tmp_value |= 0b1<<25
-        '''
-        if self.cmbDataType.current() == 1:
-            self.entryMsgID.tmp_value += 0b1<<20
-        elif self.cmbDataType.current() == 2:
-            self.entryMsgID.tmp_value += 0b10<<20
-        elif self.cmbDataType.current() == 3:
-            self.entryMsgID.tmp_value += 0b11<<20
-        elif self.cmbDataType.current() == 4:
-            self.entryMsgID.tmp_value += 0b10100<<20
-        '''
+
         if self.cmbDa.current() == 1:
             self.entryMsgID.tmp_value |= 0b10000<<15
         elif self.cmbDa.current() == 2:
