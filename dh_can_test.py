@@ -386,7 +386,7 @@ class ZCAN_Demo(tk.Tk):
                 "飞轮Y:",
                 "飞轮Z:",
                 "飞轮S:",
-                "帆板天线解锁:",
+                "帆板天线解正:",
                 "飞行插头:",
                 ]
 
@@ -1587,12 +1587,16 @@ class ZCAN_Demo(tk.Tk):
             elif self.cmbTmt.current() == 3:
                 self.entryMsgData.insert(0, "07 00 00 00 00 00 00 00")
                 self.cmbTmtPar["value"] = (
-                            "帆板天线解锁配电断开", 
-                            "帆板天线解锁配电接通", 
+                            "帆板天线解锁正线关", 
+                            "帆板天线解锁正线开", 
                             "解锁帆板",
                             "解锁举升机构",
                             "解锁天线A",
                             "解锁天线B",
+                            "回收帆板",
+                            "回收举升机构",
+                            "回收天线A",
+                            "回收天线B",
                             )
             self.cmbTmtPar.current(0)
         elif self.cmbDataType.current() == 3:
