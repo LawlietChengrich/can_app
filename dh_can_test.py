@@ -947,7 +947,9 @@ class ZCAN_Demo(tk.Tk):
             
             for i in range(0, MPPT_CNT):
                 rm_mppt_v[i] = self_data[2*i] + self_data[2*i+1]*0.01
+                rm_mppt_v[i] = round(rm_mppt_v[i],2)
                 rm_mppt_i[i] = self_data[2*(i+MPPT_CNT)] + self_data[2*(i+MPPT_CNT)+1]*0.01
+                rm_mppt_i[i] = round(rm_mppt_i[i],2)
 
             for i in range(0,MPPT_CNT-1):
                 rm_mppt_status[i] = (self_data[MPPT_CNT*4]>>(7-i))&0x1
@@ -972,6 +974,7 @@ class ZCAN_Demo(tk.Tk):
 
         for i in range(0, 3):
             rm_bat_v[i] = self_data[2*i] + self_data[2*i+1]*0.01
+            rm_bat_v[i] = round(rm_bat_v[i],2)
 
         rm_bat_v[3] = ctypes.c_int8(self_data[6]).value + ctypes.c_int8(self_data[7]).value *0.01
         rm_bat_v[3] = round(rm_bat_v[3],2)
