@@ -1561,7 +1561,6 @@ class ZCAN_Demo(tk.Tk):
                             "充电电流2档",
                             "充电电压1档",
                             "充电电压2档",
-                            "充电电压3档",
                             )
             elif self.cmbTmt.current() == 2:
                 self.entryMsgData.insert(0, "04 00 00 00 00 00 00 00")
