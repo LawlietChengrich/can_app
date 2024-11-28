@@ -753,7 +753,7 @@ class ZCAN_Demo(tk.Tk):
         self.cmbBusFlag.grid(row = 4, column=3, sticky=tk.W)
         self.cmbBusFlag.bind('<<ComboboxSelected>>', self.SelfDefChangeEvent)
         self.cmbBusFlag["value"] = ("A总线", "B总线")
-        self.cmbBusFlag.current(1)
+        self.cmbBusFlag.current(0)
         self.entryMsgID.tmp_value += 1<<CANID_BUS_POS
 
         #ID24 - 20 DT 数据类型
@@ -795,7 +795,7 @@ class ZCAN_Demo(tk.Tk):
         self.cmbDa.grid(row = 6, column=1, sticky=tk.W)
         self.cmbDa.bind('<<ComboboxSelected>>', self.SelfDefChangeEvent)
         self.cmbDa["value"] = ("星算", "电控主", "电控备", "广播")
-        self.cmbDa.current(2)
+        self.cmbDa.current(1)
         self.entryMsgID.tmp_value += 0b10001<<CANID_DA_POS
 
         #ID14 - 10 SA 源地址
