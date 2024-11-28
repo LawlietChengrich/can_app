@@ -34,7 +34,7 @@ WIDGHT_HEIGHT   = MSGVIEW_HEIGHT + SENDVIEW_HEIGHT + 20
 RM_DATA_HEAD_LEN = 5
 MAX_RMDATA_LEN = 128
 MPPT_CNT = 9
-TEMP_SENSOR_CNT = 13
+TEMP_SENSOR_CNT = 5
 MAX_ONE_DATA_FRAME_LEN = 8
 MAX_DISPLAY     = 1000
 MAX_RCV_NUM     = 10
@@ -401,14 +401,6 @@ class ZCAN_Demo(tk.Tk):
                     "测温点3(℃):",
                     "测温点4(℃)",
                     "测温点5(℃):",
-                    "测温点6(℃):",
-                    "测温点7(℃):",
-                    "测温点8(℃):",
-                    "测温点9(℃):",
-                    "测温点10(℃):",
-                    "测温点11(℃):",
-                    "测温点12(℃):",
-                    "测温点13(℃):",
                 ]
 
             for i in range(0, len(tmt_value)):
